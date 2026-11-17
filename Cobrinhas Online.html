@@ -1,0 +1,2280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <!-- Viewport travado para evitar zoom e rolagem em dispositivos móveis -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>COBRINHAS - Arena Multiplayer Online</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonte Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #070b14;
+            font-family: 'Outfit', sans-serif;
+            color: #ffffff;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        /* Painéis leves para desempenho máximo em aparelhos de entrada */
+        .glass-panel {
+            background: rgba(13, 20, 36, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+        }
+        body.hq-mode .glass-panel {
+            background: rgba(13, 20, 36, 0.78);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        /* Card da Tela Inicial idêntico ao visual aprovado */
+        .lobby-card {
+            background: linear-gradient(180deg, #132a2c 0%, #0e1526 32%, #0b101e 100%);
+            border: 1px solid rgba(16, 185, 129, 0.22);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(16, 185, 129, 0.08);
+        }
+        .color-swatch {
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        }
+        .color-swatch.selected {
+            transform: scale(1.12);
+            box-shadow: 0 0 0 3px #ffffff, 0 0 16px rgba(255, 255, 255, 0.65);
+            opacity: 1 !important;
+        }
+        .skin-btn {
+            transition: all 0.15s ease;
+        }
+        .skin-btn.selected {
+            background-color: #13292a;
+            border-color: rgba(52, 211, 153, 0.75);
+            color: #ffffff;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.22);
+        }
+        /* Indicador discreto de arraste no celular */
+        #touchDragIndicator {
+            position: fixed;
+            width: 58px;
+            height: 58px;
+            margin-top: -29px;
+            margin-left: -29px;
+            border-radius: 50%;
+            border: 2px solid rgba(52, 211, 153, 0.5);
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, transparent 72%);
+            pointer-events: none;
+            z-index: 20;
+            display: none;
+        }
+        #touchDragIndicator.boosting {
+            border-color: rgba(251, 191, 36, 0.85);
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.28) 0%, transparent 72%);
+            transform: scale(1.16);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas Principal -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- HUD SUPERIOR ESQUERDO: Pontos, Tamanho, Áudio, Modo Leve, Convidar, Turbo e Missões -->
+    <div id="hudTop" class="fixed top-3 left-3 max-md:top-2 max-md:left-2 z-10 hidden flex-col gap-2 max-md:gap-1.5">
+        <div class="glass-panel px-3.5 py-2 max-md:px-2.5 max-md:py-1.5 rounded-2xl flex items-center gap-3 max-md:gap-2">
+            <div class="pointer-events-none">
+                <div class="text-[10px] max-md:text-[9px] uppercase tracking-wider text-slate-400 font-semibold">Pontos</div>
+                <div id="hudScore" class="text-xl sm:text-2xl max-md:text-base font-black text-emerald-400 leading-none">4</div>
+            </div>
+            <div class="h-7 max-md:h-5 w-[1px] bg-slate-700 pointer-events-none"></div>
+            <div class="pointer-events-none">
+                <div class="text-[10px] max-md:text-[9px] uppercase tracking-wider text-slate-400 font-semibold">Tamanho</div>
+                <div id="hudLength" class="text-base sm:text-lg max-md:text-xs font-bold text-white leading-none">4 pts</div>
+            </div>
+            <div class="h-7 max-md:h-5 w-[1px] bg-slate-700"></div>
+            <!-- Som -->
+            <button id="muteBtnHud" type="button" title="Ativar/Silenciar Som" class="p-2 max-md:p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition cursor-pointer">
+                <svg id="soundIconOn" class="w-4 h-4 max-md:w-3.5 max-md:h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                <svg id="soundIconOff" class="w-4 h-4 max-md:w-3.5 max-md:h-3.5 text-rose-400 hidden" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+            </button>
+            <!-- Qualidade Gráfica -->
+            <button id="perfBtnHud" type="button" title="Alternar Qualidade Gráfica" class="px-2 py-1.5 max-md:px-1.5 max-md:py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] max-md:text-[10px] font-extrabold transition cursor-pointer">
+                ⚡ Leve
+            </button>
+            <!-- Convidar -->
+            <button id="inviteBtnHud" type="button" title="Copiar Link da Sala" class="px-2.5 py-1.5 max-md:px-2 max-md:py-1 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/35 border border-indigo-400/30 text-indigo-200 text-xs font-bold flex items-center gap-1 transition cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                <span class="hidden sm:inline">Convidar</span>
+            </button>
+        </div>
+
+        <!-- Badges de Sala, Bioma e Status Caçado -->
+        <div class="flex flex-wrap items-center gap-1.5 pointer-events-none">
+            <span id="hudRoomBadge" class="text-[11px] max-md:text-[9px] font-bold text-cyan-300 bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-cyan-500/25">
+                Sala: Pública
+            </span>
+            <span id="hudBiomeBadge" class="text-[11px] max-md:text-[9px] font-bold text-slate-300 bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-white/10">
+                🌿 Zona Neutra
+            </span>
+            <span id="hudLeaderHunterBadge" class="hidden text-[11px] max-md:text-[9px] font-black text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-400/40 animate-pulse">
+                👑 CAÇADO
+            </span>
+        </div>
+
+        <!-- Barra de Temperatura / Energia do Turbo -->
+        <div class="glass-panel px-3 py-1.5 max-md:px-2.5 max-md:py-1 rounded-xl flex items-center gap-2 max-w-[225px] max-md:max-w-[165px] pointer-events-none">
+            <span id="boostHeatLabel" class="text-[10px] max-md:text-[9px] font-extrabold uppercase tracking-wider text-amber-300 whitespace-nowrap">⚡ Turbo</span>
+            <div class="flex-1 h-2 max-md:h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/10">
+                <div id="boostHeatBar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-75" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Barra de Power-ups Ativos -->
+        <div id="activePowerupsContainer" class="flex flex-col gap-1 pointer-events-none"></div>
+
+        <!-- Card Compacto de Missão Relâmpago Individual -->
+        <div id="miniMissionCard" class="hidden glass-panel px-3 py-2 max-md:px-2.5 max-md:py-1.5 rounded-2xl border border-cyan-400/40 max-w-[235px] max-md:max-w-[175px] pointer-events-none">
+            <div class="flex items-center justify-between gap-1.5 mb-1">
+                <span class="text-[10px] max-md:text-[9px] font-black uppercase tracking-wider text-cyan-300 flex items-center gap-1">
+                    <span>🎯</span> <span id="miniMissionTitle">Missão</span>
+                </span>
+                <span id="miniMissionTimer" class="font-mono text-[10px] max-md:text-[9px] font-extrabold bg-cyan-500/20 text-cyan-200 px-1.5 py-0.5 rounded-full">25s</span>
+            </div>
+            <p id="miniMissionDesc" class="text-[11px] max-md:text-[10px] text-slate-200 leading-tight mb-1.5">
+                Coma 12 orbes no Pântano
+            </p>
+            <div class="flex items-center gap-2">
+                <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/10">
+                    <div id="miniMissionBar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-150" style="width: 0%"></div>
+                </div>
+                <span id="miniMissionProgressText" class="font-mono text-[10px] max-md:text-[9px] font-bold text-emerald-300">0/12</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- BANNER SUPERIOR CENTRAL: Eventos Relâmpago e Notificações de Abate -->
+    <div id="arenaAnnouncements" class="fixed top-3 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 pointer-events-none w-full max-w-md px-3">
+        <div id="worldEventBanner" class="hidden glass-panel px-4 py-2 rounded-2xl border border-amber-400/50 text-center shadow-2xl">
+            <div class="flex items-center justify-center gap-2">
+                <span id="worldEventIcon" class="text-base">⚡</span>
+                <span id="worldEventTitle" class="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-300">EVENTO RELÂMPAGO</span>
+                <span id="worldEventTimer" class="font-mono text-xs font-extrabold bg-amber-500/20 text-amber-200 px-2 py-0.5 rounded-full">20s</span>
+            </div>
+            <p id="worldEventDesc" class="text-[11px] text-slate-200 mt-0.5">Descrição do evento</p>
+        </div>
+
+        <div id="killFeedBanner" class="opacity-0 scale-95 transition-all duration-300 px-4 py-1.5 rounded-full bg-gradient-to-r from-rose-600/95 to-amber-600/95 border border-amber-300/50 text-white text-xs font-black tracking-wide shadow-xl">
+            Você eliminou um adversário!
+        </div>
+    </div>
+
+    <!-- HUD RANKING DA SALA (Compacto e minimizável no celular) -->
+    <div id="hudLeaderboard" class="fixed top-3 right-3 max-md:top-2 max-md:right-2 z-10 hidden w-56 sm:w-64 max-md:w-36 glass-panel rounded-2xl max-md:rounded-xl p-3.5 max-md:p-2 max-md:bg-slate-900/55">
+        <div class="flex items-center justify-between mb-2 max-md:mb-1 pb-1.5 max-md:pb-1 border-b border-white/10">
+            <span class="text-xs max-md:text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                <svg class="w-4 h-4 max-md:w-3 max-md:h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <span class="max-md:hidden">Ranking da Sala</span>
+                <span class="md:hidden">Top</span>
+            </span>
+            <div class="flex items-center gap-1.5">
+                <span id="onlineCount" class="text-[11px] max-md:text-[9px] font-semibold text-slate-400">1/10 vivos</span>
+                <button id="toggleLeaderboardBtn" type="button" title="Minimizar/Expandir Ranking" class="md:hidden pointer-events-auto px-1.5 py-0.5 rounded bg-slate-800/85 text-[10px] font-bold text-slate-200 border border-white/10 cursor-pointer">
+                    −
+                </button>
+            </div>
+        </div>
+        <ul id="leaderboardList" class="space-y-1.5 max-md:space-y-0.5 text-xs max-md:text-[10px]"></ul>
+    </div>
+
+    <!-- RADAR CIRCULAR RESPONSIVO (Compacto no canto inferior esquerdo no mobile) -->
+    <div id="radarContainer" class="fixed bottom-4 left-4 max-md:bottom-3 max-md:left-3 z-10 hidden pointer-events-none max-md:opacity-75">
+        <div class="glass-panel p-1.5 max-md:p-1 rounded-full shadow-2xl border border-emerald-500/20">
+            <canvas id="minimapCanvas" width="116" height="116" class="rounded-full bg-slate-950/90 block max-md:w-[76px] max-md:h-[76px]"></canvas>
+        </div>
+    </div>
+
+    <!-- Indicador Visual de Arraste Touch -->
+    <div id="touchDragIndicator"></div>
+
+    <!-- Toast de Feedback -->
+    <div id="toastNotification" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-emerald-500 text-slate-950 font-extrabold text-xs shadow-xl opacity-0 pointer-events-none transition-opacity duration-200">
+        Link de convite copiado!
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TELA INICIAL / LOBBY (Visual Exato Aprovado)                          -->
+    <!-- ===================================================================== -->
+    <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-[#070b14]/92 overflow-y-auto">
+        <div class="lobby-card w-full max-w-[395px] my-auto rounded-[28px] p-6 text-slate-100 relative overflow-hidden">
+            
+            <!-- Selo Superior -->
+            <div class="flex justify-center mb-3">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/85 border border-emerald-500/30 text-[11px] font-extrabold tracking-wider text-emerald-300 uppercase">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                    ARENA MULTIPLAYER ONLINE
+                </div>
+            </div>
+
+            <!-- Título e Subtítulo -->
+            <h1 class="text-center text-[36px] leading-none font-black tracking-wide text-[#7af5d8] mb-2">
+                COBRINHAS
+            </h1>
+            <p class="text-center text-[13px] leading-snug text-slate-300/90 mb-5 px-2">
+                Coma orbes brilhantes, corte o caminho de outros jogadores e domine o ranking!
+            </p>
+
+            <form id="joinForm" class="space-y-3.5">
+                <!-- Apelido -->
+                <div>
+                    <label for="nicknameInput" class="block text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1.5">
+                        SEU APELIDO NA ARENA
+                    </label>
+                    <input
+                        id="nicknameInput"
+                        type="text"
+                        maxlength="16"
+                        placeholder="Ex: CobraRei, Relâmpago..."
+                        autocomplete="off"
+                        class="w-full px-3.5 py-3 rounded-xl bg-[#101829] border border-slate-700/80 text-sm text-white placeholder-slate-500 font-semibold focus:outline-none focus:border-emerald-400 transition"
+                    />
+                </div>
+
+                <!-- Seletor de Cores -->
+                <div>
+                    <span class="block text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1.5">
+                        ESCOLHA A COR DA SUA COBRINHA
+                    </span>
+                    <div id="colorPicker" class="flex flex-wrap justify-center items-center gap-2.5 p-3 rounded-2xl bg-[#0e1525]/95 border border-slate-800/90">
+                        <button type="button" data-color="#10b981" class="color-swatch selected w-10 h-10 rounded-full bg-[#10b981] cursor-pointer" aria-label="Verde Esmeralda"></button>
+                        <button type="button" data-color="#3b82f6" class="color-swatch w-10 h-10 rounded-full bg-[#3b82f6] opacity-90 hover:opacity-100 cursor-pointer" aria-label="Azul"></button>
+                        <button type="button" data-color="#ef4444" class="color-swatch w-10 h-10 rounded-full bg-[#ef4444] opacity-90 hover:opacity-100 cursor-pointer" aria-label="Vermelho"></button>
+                        <button type="button" data-color="#a855f7" class="color-swatch w-10 h-10 rounded-full bg-[#a855f7] opacity-90 hover:opacity-100 cursor-pointer" aria-label="Roxo"></button>
+                        <button type="button" data-color="#f59e0b" class="color-swatch w-10 h-10 rounded-full bg-[#f59e0b] opacity-90 hover:opacity-100 cursor-pointer" aria-label="Laranja"></button>
+                        <button type="button" data-color="#06b6d4" class="color-swatch w-10 h-10 rounded-full bg-[#06b6d4] opacity-90 hover:opacity-100 cursor-pointer" aria-label="Ciano"></button>
+                        <button type="button" data-color="#ec4899" class="color-swatch w-10 h-10 rounded-full bg-[#ec4899] opacity-90 hover:opacity-100 cursor-pointer" aria-label="Rosa"></button>
+                    </div>
+                </div>
+
+                <!-- Seletor de Estampas / Skins -->
+                <div id="skinPicker" class="grid grid-cols-2 gap-2.5">
+                    <button type="button" data-skin="solid" class="skin-btn selected py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 cursor-pointer">
+                        Clássico Sólido
+                    </button>
+                    <button type="button" data-skin="striped" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 cursor-pointer">
+                        Listrado
+                    </button>
+                    <button type="button" data-skin="neon" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 cursor-pointer">
+                        Neon Pulse
+                    </button>
+                    <button type="button" data-skin="rainbow" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 cursor-pointer">
+                        Arco-Íris
+                    </button>
+                    <button type="button" data-skin="brasil" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 cursor-pointer">
+                        Brasil
+                    </button>
+                </div>
+
+                <!-- Modo de Sala -->
+                <div class="p-3.5 rounded-2xl bg-[#0d1424] border border-slate-800/90">
+                    <div class="flex items-center justify-between gap-1.5 mb-3">
+                        <span class="text-[11px] font-extrabold tracking-wider text-slate-200 uppercase">MODO DE SALA</span>
+                        <div class="flex items-center gap-1.5">
+                            <span id="lobbyRoomCapacityBadge" class="px-2 py-0.5 rounded-full bg-[#13253a] border border-sky-500/30 text-[10px] font-bold text-sky-300">
+                                👥 10/10 na sala
+                            </span>
+                            <span id="roomModeBadge" class="px-2 py-0.5 rounded-full bg-[#102e26] border border-emerald-500/30 text-[10px] font-bold text-emerald-300">
+                                🌐 Arena Pública
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <button id="publicRoomTab" type="button" class="py-2.5 px-3 rounded-xl text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20 cursor-pointer">
+                            Arena Pública
+                        </button>
+                        <button id="privateRoomTab" type="button" class="py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition cursor-pointer">
+                            Sala Privada 🔒
+                        </button>
+                    </div>
+
+                    <!-- Painel Opcional de Código de Sala Privada -->
+                    <div id="privateRoomPanel" class="hidden mt-3 pt-3 border-t border-slate-800 space-y-2">
+                        <div class="flex gap-2">
+                            <input id="roomCodeInput" type="text" maxlength="8" placeholder="CÓDIGO DA SALA" class="flex-1 px-3 py-2 rounded-lg bg-[#090e1a] border border-slate-700 text-xs font-bold uppercase text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
+                            <button id="generateRoomBtn" type="button" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-300 border border-emerald-500/30 cursor-pointer">
+                                Gerar
+                            </button>
+                        </div>
+                        <button id="copyLobbyInviteBtn" type="button" class="w-full py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 text-xs font-bold cursor-pointer">
+                            📋 Copiar Link de Convite da Sala
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status de Conexão -->
+                <div id="authStatusBanner" class="flex items-center justify-center gap-1.5 text-[13px] pt-0.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                    <span class="font-bold text-amber-400">Arena Pronta!</span>
+                    <span class="text-slate-300">Conectado à sala.</span>
+                </div>
+
+                <!-- Botão Principal -->
+                <button id="startGameBtn" type="submit" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-base tracking-wide uppercase shadow-lg shadow-emerald-500/25 transition cursor-pointer">
+                    ENTRAR NA SALA
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL DE FIM DE PARTIDA (GAME OVER)                                   -->
+    <!-- ===================================================================== -->
+    <div id="gameOverOverlay" class="fixed inset-0 z-30 hidden items-center justify-center p-4 bg-slate-950/88">
+        <div class="lobby-card w-full max-w-[380px] rounded-[28px] p-6 text-center text-slate-100">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-2xl mb-3">
+                💥
+            </div>
+            <h2 class="text-2xl font-black tracking-tight text-white mb-1">Fim de Linha!</h2>
+            <p id="deathReasonText" class="text-xs text-slate-300 mb-4">Você colidiu na arena.</p>
+
+            <!-- Estatísticas da Rodada -->
+            <div class="grid grid-cols-2 gap-2.5 mb-5 text-left">
+                <div class="p-3 rounded-2xl bg-[#0d1424] border border-slate-800">
+                    <div class="text-[10px] font-bold uppercase text-slate-400">Pontuação Final</div>
+                    <div id="finalScoreText" class="text-xl font-black text-emerald-400">0</div>
+                </div>
+                <div class="p-3 rounded-2xl bg-[#0d1424] border border-slate-800">
+                    <div class="text-[10px] font-bold uppercase text-slate-400">Maior Tamanho</div>
+                    <div id="finalMaxSizeText" class="text-xl font-black text-cyan-300">4 pts</div>
+                </div>
+                <div class="p-3 rounded-2xl bg-[#0d1424] border border-slate-800">
+                    <div class="text-[10px] font-bold uppercase text-slate-400">Tempo Vivo</div>
+                    <div id="finalTimeText" class="text-base font-extrabold text-white">00:00</div>
+                </div>
+                <div class="p-3 rounded-2xl bg-[#0d1424] border border-slate-800">
+                    <div class="text-[10px] font-bold uppercase text-slate-400">Eliminações</div>
+                    <div id="finalKillsText" class="text-base font-extrabold text-amber-400">0</div>
+                </div>
+            </div>
+
+            <div class="space-y-2.5">
+                <button id="playAgainBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wide shadow-lg shadow-emerald-500/25 transition cursor-pointer">
+                    Jogar Novamente
+                </button>
+                <button id="backToLobbyBtn" type="button" class="w-full py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider border border-slate-700 transition cursor-pointer">
+                    Alterar Cobra / Sala
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SCRIPT PRINCIPAL DO JOGO (FIREBASE + MOTOR CANVAS 60 FPS)             -->
+    <!-- ===================================================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {
+            getFirestore,
+            doc,
+            setDoc,
+            deleteDoc,
+            collection,
+            onSnapshot,
+            setLogLevel
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Silencia logs internos ruidosos de reconexão do Firestore quando offline/sandbox
+        try { setLogLevel('silent'); } catch (_) {}
+
+        // Configuração do projeto Firebase "servidor-de-cobrinhas"
+        const EXTERNAL_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBQ7A9l01CbX3Bzn-wTkAVQBKci8251UNU",
+            authDomain: "servidor-de-cobrinhas.firebaseapp.com",
+            projectId: "servidor-de-cobrinhas",
+            storageBucket: "servidor-de-cobrinhas.firebasestorage.app",
+            messagingSenderId: "689255081213",
+            appId: "1:689255081213:web:769cb127bb70980a278a94",
+            measurementId: "G-N6J0C62JMM"
+        };
+
+        // =====================================================================
+        // 1. CONSTANTES DA ARENA E ESTADO GLOBAL
+        // =====================================================================
+        const ARENA_SIZE = 4500;
+        const HALF_ARENA = ARENA_SIZE / 2;
+        const MAX_PLAYERS_PER_ROOM = 10;
+        const INITIAL_POINTS = 4;
+        const SEGMENT_SPACING = 6.5;
+        const TARGET_ORB_COUNT = 320;
+        const PLASMA_MINE_COUNT = 16;
+
+        // Zonas Ambientais
+        const ICE_ZONE_MAX_Y = 1400;     // Norte: +24% velocidade, curvas com drift
+        const SWAMP_ZONE_MIN_Y = 3100;   // Sul: mais lento, orbes valem 2x
+
+        // Estado de Desempenho Adaptativo (Auto-detecta celulares/PCs fracos)
+        const isLowEndHardware = (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+                                 (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+                                 /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        let isLowPerfMode = isLowEndHardware;
+        if (!isLowPerfMode) document.body.classList.add('hq-mode');
+
+        // Estado de Rede / Firebase
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let isOnlineMode = false;
+        let currentRoomCode = 'PUBLICA';
+        let isPrivateRoom = false;
+        let unsubscribePlayers = null;
+        let unsubscribeOrbs = null;
+        let lastCloudSync = 0;
+        let lastOrbSeedSync = 0;
+
+        // Verifica parâmetro ?sala= na URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRoom = urlParams.get('sala');
+        if (urlRoom && urlRoom.trim().length > 0) {
+            currentRoomCode = urlRoom.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'PUBLICA';
+            if (currentRoomCode !== 'PUBLICA') {
+                isPrivateRoom = true;
+            }
+        }
+
+        // =====================================================================
+        // 2. MOTOR DE ÁUDIO PROCEDURAL (WEB AUDIO API - SEM ARQUIVOS EXTERNOS)
+        // =====================================================================
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume().catch(() => {});
+                }
+            }
+            playTone(freq, endFreq, duration, type = 'sine', vol = 0.08) {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, now);
+                    if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, now + duration);
+                    gain.gain.setValueAtTime(vol, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + duration);
+                } catch (_) {}
+            }
+            eat() { this.playTone(460, 740, 0.07, 'sine', 0.06); }
+            powerup() { this.playTone(520, 1080, 0.22, 'triangle', 0.11); }
+            portal() { this.playTone(280, 880, 0.28, 'sine', 0.10); }
+            kill() { this.playTone(320, 920, 0.25, 'sawtooth', 0.09); }
+            mission() {
+                this.playTone(587, 880, 0.14, 'triangle', 0.11);
+                setTimeout(() => this.playTone(880, 1174, 0.22, 'triangle', 0.11), 110);
+            }
+            crash() { this.playTone(190, 48, 0.42, 'sawtooth', 0.15); }
+        }
+        const sfx = new SoundEngine();
+
+        // =====================================================================
+        // 3. ENTIDADES DO JOGO (JOGADOR LOCAL, BOTS/REMOTOS, ORBES, PORTAIS)
+        // =====================================================================
+        let selectedColor = '#10b981';
+        let selectedSkin = 'solid';
+
+        const remotePlayers = new Map(); // id -> dados do jogador/bot
+        const foodOrbs = new Map();      // id -> orbe/powerup/veneno
+        const particles = [];            // efeitos visuais leves
+
+        // Portais de Teletransporte em lados opostos da arena
+        const portals = [
+            { id: 'A', x: 750, y: 750, targetX: ARENA_SIZE - 750, targetY: ARENA_SIZE - 750, color: '#06b6d4' },
+            { id: 'B', x: ARENA_SIZE - 750, y: ARENA_SIZE - 750, targetX: 750, targetY: 750, color: '#a855f7' }
+        ];
+
+        // 16 Esferas de Plasma (Minas Errantes Vermelhas)
+        const plasmaMines = Array.from({ length: PLASMA_MINE_COUNT }, (_, idx) => {
+            const angle = (idx / PLASMA_MINE_COUNT) * Math.PI * 2;
+            return {
+                x: 500 + Math.random() * (ARENA_SIZE - 1000),
+                y: 500 + Math.random() * (ARENA_SIZE - 1000),
+                vx: Math.cos(angle) * 58,
+                vy: Math.sin(angle) * 58,
+                radius: 22
+            };
+        });
+
+        // Estado do Jogador Local
+        const localPlayer = {
+            id: 'local_' + Math.random().toString(36).slice(2, 9),
+            name: 'Jogador',
+            color: '#10b981',
+            skin: 'solid',
+            alive: false,
+            x: HALF_ARENA,
+            y: HALF_ARENA,
+            angle: 0,
+            targetAngle: 0,
+            points: INITIAL_POINTS,
+            maxPoints: INITIAL_POINTS,
+            kills: 0,
+            killStreak: 0,
+            spawnTime: 0,
+            lastAteTime: 0,
+            hungerAccumulator: 0,
+            segments: [],
+            isBoosting: false,
+            boostHeat: 0,          // 0..100
+            boostOverheated: false,
+            boostCostAccum: 0,
+            portalCooldown: 0,
+            freeBoostUntil: 0,
+            powerups: {
+                magnetUntil: 0,
+                visionUntil: 0,
+                ghostUntil: 0
+            }
+        };
+
+        // Eventos Relâmpago da Arena
+        let activeWorldEvent = null; // { type, title, icon, desc, endsAt }
+        let nextWorldEventAt = performance.now() + 28000;
+        let currentArenaRadius = HALF_ARENA; // Encolhe no evento 'shrink'
+
+        // Missão Relâmpago Individual
+        let activeMission = null; // { id, title, desc, target, progress, reward, endsAt, type }
+        let nextMissionAt = performance.now() + 8000;
+
+        // Câmera e Controles
+        const camera = { x: HALF_ARENA, y: HALF_ARENA, zoom: 1 };
+        let mouseScreenX = window.innerWidth / 2;
+        let mouseScreenY = window.innerHeight / 2;
+        let isMouseDown = false;
+        let isSpaceDown = false;
+
+        // Touch Mobile (Arraste para guiar + Dois toques rápidos para turbo)
+        let activeTouchId = null;
+        let touchOriginX = 0;
+        let touchOriginY = 0;
+        let lastTapTime = 0;
+        let isTouchBoosting = false;
+
+        // =====================================================================
+        // 4. CRIAÇÃO E RENDERIZAÇÃO DE ORBES, POWER-UPS E ESPINHOS
+        // =====================================================================
+        function createRandomOrb(id, forceType = null) {
+            const margin = 150;
+            const x = margin + Math.random() * (ARENA_SIZE - margin * 2);
+            const y = margin + Math.random() * (ARENA_SIZE - margin * 2);
+            let type = forceType;
+
+            if (!type) {
+                const roll = Math.random();
+                if (roll < 0.026) type = 'magnet';
+                else if (roll < 0.050) type = 'vision';
+                else if (roll < 0.072) type = 'ghost';
+                else if (roll < 0.120) type = 'poison';
+                else type = 'food';
+            }
+
+            if (type === 'magnet') return { id, x, y, type: 'magnet', color: '#f59e0b', value: 3, radius: 14 };
+            if (type === 'vision') return { id, x, y, type: 'vision', color: '#06b6d4', value: 3, radius: 14 };
+            if (type === 'ghost')  return { id, x, y, type: 'ghost',  color: '#c084fc', value: 3, radius: 14 };
+            if (type === 'poison') return { id, x, y, type: 'poison', color: '#a855f7', value: 0, radius: 17 };
+
+            const isSwamp = y > SWAMP_ZONE_MIN_Y;
+            const foodColors = ['#34d399', '#38bdf8', '#f472b6', '#facc15', '#fb923c', '#a78bfa'];
+            const color = foodColors[Math.floor(Math.random() * foodColors.length)];
+            const big = Math.random() < 0.16;
+            const baseVal = big ? 2 : 1;
+            return {
+                id,
+                x,
+                y,
+                type: 'food',
+                color,
+                value: isSwamp ? baseVal * 2 : baseVal,
+                radius: big ? 7.6 : 5.2
+            };
+        }
+
+        function drawOrbs(ctx, viewLeft, viewRight, viewTop, viewBottom, now) {
+            const pulse = 1 + Math.sin(now * 0.006) * 0.14;
+
+            for (const orb of foodOrbs.values()) {
+                if (orb.x < viewLeft - 45 || orb.x > viewRight + 45 || orb.y < viewTop - 45 || orb.y > viewBottom + 45) {
+                    continue;
+                }
+
+                if (orb.type === 'poison') {
+                    // Espinho Venenoso Roxo Estrelado Giratório
+                    const r = (orb.radius || 17) * (0.95 + Math.sin(now * 0.005 + orb.x) * 0.06);
+                    const spikes = 10;
+                    ctx.save();
+                    ctx.translate(orb.x, orb.y);
+                    ctx.rotate(now * 0.0009);
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r * 1.48, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(147, 51, 234, 0.22)';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    for (let i = 0; i < spikes * 2; i++) {
+                        const rad = i % 2 === 0 ? r * 1.28 : r * 0.66;
+                        const ang = (i * Math.PI) / spikes;
+                        const px = Math.cos(ang) * rad;
+                        const py = Math.sin(ang) * rad;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fillStyle = '#581c87';
+                    ctx.fill();
+                    ctx.lineWidth = 2.2;
+                    ctx.strokeStyle = '#d8b4fe';
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r * 0.34, 0, Math.PI * 2);
+                    ctx.fillStyle = '#f3e8ff';
+                    ctx.fill();
+                    ctx.restore();
+                } else if (orb.type === 'magnet' || orb.type === 'vision' || orb.type === 'ghost') {
+                    // Habilidades Especiais (Ímã, Visão, Fantasma) com Halo e Ícone Nítido
+                    const r = (orb.radius || 14) * pulse;
+                    const bgColors = {
+                        magnet: 'rgba(245, 158, 11, 0.28)',
+                        vision: 'rgba(6, 182, 212, 0.28)',
+                        ghost: 'rgba(192, 132, 252, 0.30)'
+                    };
+                    const borderColors = {
+                        magnet: '#fbbf24',
+                        vision: '#22d3ee',
+                        ghost: '#e879f9'
+                    };
+                    const icons = {
+                        magnet: '🧲',
+                        vision: '👁️',
+                        ghost: '👻'
+                    };
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, r * 1.48, 0, Math.PI * 2);
+                    ctx.fillStyle = bgColors[orb.type];
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, r, 0, Math.PI * 2);
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fill();
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeStyle = borderColors[orb.type];
+                    ctx.stroke();
+
+                    ctx.font = '16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(icons[orb.type], orb.x, orb.y + 1);
+                    ctx.restore();
+                } else {
+                    // Orbe normal de comida
+                    const r = orb.radius || 5.2;
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, r * 1.55, 0, Math.PI * 2);
+                    ctx.fillStyle = orb.color + '33';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, r, 0, Math.PI * 2);
+                    ctx.fillStyle = orb.color;
+                    ctx.fill();
+                }
+            }
+        }
+
+        // =====================================================================
+        // 5. POVOAMENTO PERSISTENTE DA ARENA E SINCRONIZAÇÃO FIREBASE
+        // =====================================================================
+        const BOT_PROFILES = [
+            { id: 'bot_1', name: 'ViperX',     color: '#3b82f6', skin: 'striped', startPts: 145 },
+            { id: 'bot_2', name: 'Nagini',     color: '#a855f7', skin: 'neon',    startPts: 235 },
+            { id: 'bot_3', name: 'Relâmpago',  color: '#f59e0b', skin: 'brasil',  startPts: 88  },
+            { id: 'bot_4', name: 'Sombra',     color: '#ec4899', skin: 'solid',   startPts: 315 },
+            { id: 'bot_5', name: 'CobraRei',   color: '#10b981', skin: 'rainbow', startPts: 192 },
+            { id: 'bot_6', name: 'Titan',      color: '#ef4444', skin: 'striped', startPts: 64  },
+            { id: 'bot_7', name: 'Kaa',        color: '#06b6d4', skin: 'neon',    startPts: 118 },
+            { id: 'bot_8', name: 'Fúria',      color: '#f97316', skin: 'solid',   startPts: 48  },
+            { id: 'bot_9', name: 'NeonByte',   color: '#8b5cf6', skin: 'rainbow', startPts: 270 }
+        ];
+
+        function buildInitialSegments(x, y, angle, points) {
+            const count = Math.min(260, Math.max(4, Math.floor(points)));
+            const segs = [];
+            for (let i = 0; i < count; i++) {
+                segs.push({
+                    x: x - Math.cos(angle) * i * SEGMENT_SPACING,
+                    y: y - Math.sin(angle) * i * SEGMENT_SPACING
+                });
+            }
+            return segs;
+        }
+
+        function spawnBot(profile, initialScore = null) {
+            const angle = Math.random() * Math.PI * 2;
+            const x = 400 + Math.random() * (ARENA_SIZE - 800);
+            const y = 400 + Math.random() * (ARENA_SIZE - 800);
+            const pts = initialScore !== null ? initialScore : (18 + Math.floor(Math.random() * 140));
+            remotePlayers.set(profile.id, {
+                id: profile.id,
+                isBot: true,
+                name: profile.name,
+                color: profile.color,
+                skin: profile.skin,
+                x,
+                y,
+                angle,
+                targetAngle: angle,
+                points: pts,
+                kills: Math.floor(pts / 85),
+                segments: buildInitialSegments(x, y, angle, pts),
+                aiTurnTimer: 0,
+                isBoosting: false,
+                updatedAt: Date.now()
+            });
+        }
+
+        function ensureBotsInRoom() {
+            // Mantém a sala povoada até o limite de 10 participantes (humanos + bots)
+            let humanCount = localPlayer.alive ? 1 : 0;
+            for (const p of remotePlayers.values()) {
+                if (!p.isBot) humanCount++;
+            }
+            const targetBots = Math.max(0, MAX_PLAYERS_PER_ROOM - Math.max(1, humanCount));
+
+            // Remove bots excedentes se entrarem mais humanos
+            const currentBots = Array.from(remotePlayers.values()).filter(p => p.isBot);
+            if (currentBots.length > targetBots) {
+                const toRemove = currentBots.slice(targetBots);
+                toRemove.forEach(b => remotePlayers.delete(b.id));
+            } else if (currentBots.length < targetBots) {
+                for (const prof of BOT_PROFILES) {
+                    if (Array.from(remotePlayers.values()).filter(p => p.isBot).length >= targetBots) break;
+                    if (!remotePlayers.has(prof.id)) {
+                        spawnBot(prof, prof.startPts);
+                    }
+                }
+            }
+            updateLobbyCapacityBadge();
+        }
+
+        function ensureArenaPopulation() {
+            const now = performance.now();
+            const canSyncOrbs = isOnlineMode && db && (now - lastOrbSeedSync > 8500);
+            if (canSyncOrbs) lastOrbSeedSync = now;
+
+            if (foodOrbs.size < TARGET_ORB_COUNT) {
+                const needed = Math.min(50, TARGET_ORB_COUNT - foodOrbs.size);
+                for (let i = 0; i < needed; i++) {
+                    const id = 'o_' + Math.random().toString(36).substring(2, 10);
+                    const orb = createRandomOrb(id);
+                    foodOrbs.set(id, orb);
+                    if (canSyncOrbs && i < 6) {
+                        setDoc(doc(db, 'rooms', currentRoomCode, 'orbs', id), orb).catch(() => {});
+                    }
+                }
+            }
+            ensureBotsInRoom();
+        }
+
+        function updateLobbyCapacityBadge() {
+            const badge = document.getElementById('lobbyRoomCapacityBadge');
+            if (!badge) return;
+            const total = Math.min(MAX_PLAYERS_PER_ROOM, remotePlayers.size + (localPlayer.alive ? 1 : 0));
+            badge.textContent = `👥 ${total}/${MAX_PLAYERS_PER_ROOM} na sala`;
+        }
+
+        // Inicializa Firebase com fallback silencioso para arena local instantânea
+        async function initFirebaseConnection() {
+            const statusBanner = document.getElementById('authStatusBanner');
+            const setReadyUI = (label = 'Arena Pronta!', sub = 'Conectado à sala.') => {
+                if (statusBanner) {
+                    statusBanner.innerHTML = `
+                        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+                        <span class="font-bold text-amber-400">${label}</span>
+                        <span class="text-slate-300">${sub}</span>
+                    `;
+                }
+            };
+
+            try {
+                const app = initializeApp(EXTERNAL_FIREBASE_CONFIG);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('timeout')), 4000)
+                );
+
+                await Promise.race([signInAnonymously(auth), timeoutPromise]);
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        localPlayer.id = user.uid;
+                        isOnlineMode = true;
+                        setReadyUI('Arena Pronta!', 'Conectado à sala.');
+                        subscribeToRoom(currentRoomCode);
+                    }
+                });
+            } catch (_) {
+                isOnlineMode = false;
+                setReadyUI('Arena Pronta!', 'Conectado à sala.');
+            }
+        }
+
+        function subscribeToRoom(roomCode) {
+            if (!isOnlineMode || !db) return;
+            if (unsubscribePlayers) unsubscribePlayers();
+            if (unsubscribeOrbs) unsubscribeOrbs();
+
+            const playersCol = collection(db, 'rooms', roomCode, 'players');
+            unsubscribePlayers = onSnapshot(playersCol, (snap) => {
+                const now = Date.now();
+                const activeIds = new Set();
+
+                snap.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    if (!data || docSnap.id === localPlayer.id) return;
+                    if (now - (data.updatedAt || 0) > 15000) return; // Ignora desconectados
+                    activeIds.add(docSnap.id);
+
+                    const segs = [];
+                    if (Array.isArray(data.flatSegs)) {
+                        for (let i = 0; i < data.flatSegs.length - 1; i += 2) {
+                            segs.push({ x: data.flatSegs[i], y: data.flatSegs[i + 1] });
+                        }
+                    }
+
+                    remotePlayers.set(docSnap.id, {
+                        id: docSnap.id,
+                        isBot: false,
+                        name: data.name || 'Jogador',
+                        color: data.color || '#3b82f6',
+                        skin: data.skin || 'solid',
+                        x: data.x || HALF_ARENA,
+                        y: data.y || HALF_ARENA,
+                        angle: data.angle || 0,
+                        points: data.points || 4,
+                        kills: data.kills || 0,
+                        segments: segs.length > 0 ? segs : buildInitialSegments(data.x || HALF_ARENA, data.y || HALF_ARENA, data.angle || 0, data.points || 4),
+                        updatedAt: data.updatedAt || now
+                    });
+                });
+
+                for (const [id, p] of remotePlayers.entries()) {
+                    if (!p.isBot && !activeIds.has(id)) {
+                        remotePlayers.delete(id);
+                    }
+                }
+                ensureBotsInRoom();
+            }, () => {
+                isOnlineMode = false;
+            });
+
+            const orbsCol = collection(db, 'rooms', roomCode, 'orbs');
+            unsubscribeOrbs = onSnapshot(orbsCol, (snap) => {
+                snap.docChanges().forEach((change) => {
+                    if (change.type === 'added' || change.type === 'modified') {
+                        foodOrbs.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+                    } else if (change.type === 'removed') {
+                        foodOrbs.delete(change.doc.id);
+                    }
+                });
+            }, () => {
+                isOnlineMode = false;
+            });
+        }
+
+        function syncLocalPlayerToCloud(now) {
+            if (!isOnlineMode || !db || !localPlayer.alive) return;
+            if (now - lastCloudSync < 140) return;
+            lastCloudSync = now;
+
+            // Compacta segmentos em array plano para rede leve
+            const flatSegs = [];
+            const step = localPlayer.segments.length > 90 ? 2 : 1;
+            for (let i = 0; i < localPlayer.segments.length; i += step) {
+                flatSegs.push(Math.round(localPlayer.segments[i].x), Math.round(localPlayer.segments[i].y));
+            }
+
+            setDoc(doc(db, 'rooms', currentRoomCode, 'players', localPlayer.id), {
+                name: localPlayer.name,
+                color: localPlayer.color,
+                skin: localPlayer.skin,
+                x: Math.round(localPlayer.x),
+                y: Math.round(localPlayer.y),
+                angle: Number(localPlayer.angle.toFixed(2)),
+                points: Math.floor(localPlayer.points),
+                kills: localPlayer.kills,
+                flatSegs,
+                updatedAt: Date.now()
+            }).catch(() => {});
+        }
+
+        // =====================================================================
+        // 6. MECÂNICAS DINÂMICAS: EVENTOS RELÂMPAGO & MISSÕES INDIVIDUAIS
+        // =====================================================================
+        function triggerRandomWorldEvent(now) {
+            const types = ['meteor', 'shrink', 'frenzy'];
+            const chosen = types[Math.floor(Math.random() * types.length)];
+
+            if (chosen === 'meteor') {
+                activeWorldEvent = {
+                    type: 'meteor',
+                    icon: '☄️',
+                    title: 'CHUVA DE METEOROS DOURADOS',
+                    desc: 'Orbes valiosas caindo no centro da arena!',
+                    endsAt: now + 20000
+                };
+                for (let i = 0; i < 45; i++) {
+                    const id = 'm_' + Math.random().toString(36).slice(2, 9);
+                    const ang = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * 680;
+                    foodOrbs.set(id, {
+                        id,
+                        x: HALF_ARENA + Math.cos(ang) * dist,
+                        y: HALF_ARENA + Math.sin(ang) * dist,
+                        type: 'food',
+                        color: '#fbbf24',
+                        value: 4,
+                        radius: 8.8
+                    });
+                }
+            } else if (chosen === 'shrink') {
+                activeWorldEvent = {
+                    type: 'shrink',
+                    icon: '⚡',
+                    title: 'ARENA ENCOLHENDO',
+                    desc: 'A borda elétrica está fechando! Corra para o centro!',
+                    endsAt: now + 24000
+                };
+            } else {
+                activeWorldEvent = {
+                    type: 'frenzy',
+                    icon: '🔥',
+                    title: 'FRENESI DE VELOCIDADE',
+                    desc: 'Turbo gratuito sem gastar massa para todos!',
+                    endsAt: now + 16000
+                };
+            }
+            sfx.powerup();
+        }
+
+        function assignNewMission(now) {
+            const templates = [
+                {
+                    type: 'swamp_orbs',
+                    title: 'Caçador do Pântano',
+                    desc: 'Coma 10 orbes no Pântano (Sul)',
+                    target: 10,
+                    reward: 25,
+                    duration: 30000
+                },
+                {
+                    type: 'ice_survive',
+                    title: 'Desafio Glacial',
+                    desc: 'Sobreviva 18s na Zona de Gelo (Norte)',
+                    target: 18,
+                    reward: 30,
+                    duration: 32000
+                },
+                {
+                    type: 'collect_any',
+                    title: 'Fome Insaciável',
+                    desc: 'Colete 20 bolinhas na arena',
+                    target: 20,
+                    reward: 20,
+                    duration: 28000
+                },
+                {
+                    type: 'eliminate_one',
+                    title: 'Predador da Arena',
+                    desc: 'Elimine 1 adversário',
+                    target: 1,
+                    reward: 45,
+                    duration: 45000
+                }
+            ];
+            const tpl = templates[Math.floor(Math.random() * templates.length)];
+            activeMission = {
+                ...tpl,
+                progress: 0,
+                endsAt: now + tpl.duration
+            };
+        }
+
+        function completeMission(now) {
+            if (!activeMission) return;
+            localPlayer.points += activeMission.reward;
+            localPlayer.maxPoints = Math.max(localPlayer.maxPoints, localPlayer.points);
+            showKillBanner(`🎯 Missão Concluída! +${activeMission.reward} pontos!`);
+            sfx.mission();
+            spawnBurstParticles(localPlayer.x, localPlayer.y, '#22d3ee', 18);
+            activeMission = null;
+            nextMissionAt = now + 18000;
+        }
+
+        function showKillBanner(text) {
+            const el = document.getElementById('killFeedBanner');
+            if (!el) return;
+            el.textContent = text;
+            el.classList.remove('opacity-0', 'scale-95');
+            el.classList.add('opacity-100', 'scale-100');
+            clearTimeout(el._hideTimer);
+            el._hideTimer = setTimeout(() => {
+                el.classList.remove('opacity-100', 'scale-100');
+                el.classList.add('opacity-0', 'scale-95');
+            }, 2800);
+        }
+
+        function spawnBurstParticles(x, y, color, count = 12) {
+            if (isLowPerfMode) count = Math.min(6, count);
+            for (let i = 0; i < count; i++) {
+                const ang = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+                const spd = 60 + Math.random() * 140;
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(ang) * spd,
+                    vy: Math.sin(ang) * spd,
+                    color,
+                    life: 0.55
+                });
+            }
+        }
+
+        // =====================================================================
+        // 7. INÍCIO DE PARTIDA, ATUALIZAÇÃO FÍSICA E COLISÕES
+        // =====================================================================
+        function startLocalPlayer() {
+            sfx.init();
+            const rawName = document.getElementById('nicknameInput').value.trim();
+            localPlayer.name = rawName || ('Cobra_' + Math.floor(100 + Math.random() * 899));
+            localPlayer.color = selectedColor;
+            localPlayer.skin = selectedSkin;
+
+            const spawnAngle = Math.random() * Math.PI * 2;
+            const spawnDist = 300 + Math.random() * (HALF_ARENA - 750);
+            localPlayer.x = HALF_ARENA + Math.cos(spawnAngle) * spawnDist;
+            localPlayer.y = HALF_ARENA + Math.sin(spawnAngle) * spawnDist;
+            localPlayer.angle = Math.random() * Math.PI * 2;
+            localPlayer.targetAngle = localPlayer.angle;
+            localPlayer.points = INITIAL_POINTS;
+            localPlayer.maxPoints = INITIAL_POINTS;
+            localPlayer.kills = 0;
+            localPlayer.killStreak = 0;
+            localPlayer.alive = true;
+            localPlayer.spawnTime = performance.now();
+            localPlayer.lastAteTime = performance.now();
+            localPlayer.hungerAccumulator = 0;
+            localPlayer.boostHeat = 0;
+            localPlayer.boostOverheated = false;
+            localPlayer.boostCostAccum = 0;
+            localPlayer.portalCooldown = 0;
+            localPlayer.freeBoostUntil = 0;
+            localPlayer.powerups = { magnetUntil: 0, visionUntil: 0, ghostUntil: 0 };
+            localPlayer.segments = buildInitialSegments(localPlayer.x, localPlayer.y, localPlayer.angle, INITIAL_POINTS);
+
+            activeMission = null;
+            nextMissionAt = performance.now() + 6000;
+
+            document.getElementById('lobbyOverlay').classList.add('hidden');
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+            document.getElementById('gameOverOverlay').classList.remove('flex');
+            document.getElementById('hudTop').classList.remove('hidden');
+            document.getElementById('hudTop').classList.add('flex');
+            document.getElementById('hudLeaderboard').classList.remove('hidden');
+            document.getElementById('radarContainer').classList.remove('hidden');
+
+            const roomBadge = document.getElementById('hudRoomBadge');
+            if (roomBadge) {
+                roomBadge.textContent = isPrivateRoom ? `Sala Privada: ${currentRoomCode}` : 'Sala: Pública';
+            }
+
+            ensureArenaPopulation();
+        }
+
+        function killLocalPlayer(reason) {
+            if (!localPlayer.alive) return;
+            localPlayer.alive = false;
+            sfx.crash();
+            spawnBurstParticles(localPlayer.x, localPlayer.y, localPlayer.color, 24);
+
+            // Transforma a massa do jogador morto em orbes brilhantes na arena
+            const dropCount = Math.min(65, Math.max(4, Math.floor(localPlayer.points * 0.65)));
+            for (let i = 0; i < dropCount; i++) {
+                const seg = localPlayer.segments[i % localPlayer.segments.length] || { x: localPlayer.x, y: localPlayer.y };
+                const id = 'd_' + Math.random().toString(36).slice(2, 9);
+                foodOrbs.set(id, {
+                    id,
+                    x: seg.x + (Math.random() - 0.5) * 26,
+                    y: seg.y + (Math.random() - 0.5) * 26,
+                    type: 'food',
+                    color: localPlayer.color,
+                    value: 2,
+                    radius: 7.4
+                });
+            }
+
+            if (isOnlineMode && db) {
+                deleteDoc(doc(db, 'rooms', currentRoomCode, 'players', localPlayer.id)).catch(() => {});
+            }
+
+            const survivedSec = Math.floor((performance.now() - localPlayer.spawnTime) / 1000);
+            const mins = String(Math.floor(survivedSec / 60)).padStart(2, '0');
+            const secs = String(survivedSec % 60).padStart(2, '0');
+
+            document.getElementById('deathReasonText').textContent = reason;
+            document.getElementById('finalScoreText').textContent = Math.floor(localPlayer.points);
+            document.getElementById('finalMaxSizeText').textContent = `${Math.floor(localPlayer.maxPoints)} pts`;
+            document.getElementById('finalTimeText').textContent = `${mins}:${secs}`;
+            document.getElementById('finalKillsText').textContent = localPlayer.kills;
+
+            document.getElementById('hudTop').classList.add('hidden');
+            document.getElementById('hudLeaderboard').classList.add('hidden');
+            document.getElementById('radarContainer').classList.add('hidden');
+
+            const overEl = document.getElementById('gameOverOverlay');
+            overEl.classList.remove('hidden');
+            overEl.classList.add('flex');
+        }
+
+        function normalizeAngleDiff(target, current) {
+            let diff = target - current;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            return diff;
+        }
+
+        function getSnakeRadius(points) {
+            return Math.min(24, 9.5 + Math.sqrt(Math.max(4, points)) * 0.65);
+        }
+
+        function updateSimulation(dt, now) {
+            // 1. Eventos Relâmpago da Arena
+            if (activeWorldEvent && now >= activeWorldEvent.endsAt) {
+                activeWorldEvent = null;
+                nextWorldEventAt = now + 65000 + Math.random() * 20000;
+            } else if (!activeWorldEvent && now >= nextWorldEventAt) {
+                triggerRandomWorldEvent(now);
+            }
+
+            // Raio dinâmico da arena (encolhe no evento 'shrink')
+            const targetArenaRadius = (activeWorldEvent && activeWorldEvent.type === 'shrink') ? 1150 : HALF_ARENA;
+            currentArenaRadius += (targetArenaRadius - currentArenaRadius) * Math.min(1, dt * 0.45);
+
+            // 2. Atualiza Esferas de Plasma (Minas Errantes)
+            for (const mine of plasmaMines) {
+                mine.x += mine.vx * dt;
+                mine.y += mine.vy * dt;
+                if (mine.x < 240 || mine.x > ARENA_SIZE - 240) mine.vx *= -1;
+                if (mine.y < 240 || mine.y > ARENA_SIZE - 240) mine.vy *= -1;
+            }
+
+            // 3. Atualiza Partículas
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const pt = particles[i];
+                pt.x += pt.vx * dt;
+                pt.y += pt.vy * dt;
+                pt.life -= dt;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            // 4. Atualiza Bots da Sala
+            for (const bot of remotePlayers.values()) {
+                if (!bot.isBot) continue;
+
+                bot.aiTurnTimer -= dt;
+                if (bot.aiTurnTimer <= 0) {
+                    bot.aiTurnTimer = 0.35 + Math.random() * 0.65;
+                    // Procura orbe próxima
+                    let bestOrb = null;
+                    let bestDist = 380;
+                    for (const orb of foodOrbs.values()) {
+                        if (orb.type === 'poison') continue;
+                        const d = Math.hypot(orb.x - bot.x, orb.y - bot.y);
+                        if (d < bestDist) {
+                            bestDist = d;
+                            bestOrb = orb;
+                        }
+                    }
+                    if (bestOrb) {
+                        bot.targetAngle = Math.atan2(bestOrb.y - bot.y, bestOrb.x - bot.x);
+                    } else {
+                        bot.targetAngle += (Math.random() - 0.5) * 1.4;
+                    }
+                }
+
+                // Evita bordas
+                const distCenter = Math.hypot(bot.x - HALF_ARENA, bot.y - HALF_ARENA);
+                if (distCenter > currentArenaRadius - 260) {
+                    bot.targetAngle = Math.atan2(HALF_ARENA - bot.y, HALF_ARENA - bot.x);
+                }
+
+                // Evita esferas de plasma
+                for (const mine of plasmaMines) {
+                    if (Math.hypot(mine.x - bot.x, mine.y - bot.y) < 130) {
+                        bot.targetAngle = Math.atan2(bot.y - mine.y, bot.x - mine.x);
+                    }
+                }
+
+                const turnRate = 3.4;
+                bot.angle += normalizeAngleDiff(bot.targetAngle, bot.angle) * Math.min(1, turnRate * dt);
+
+                let botSpeed = 165;
+                if (bot.y < ICE_ZONE_MAX_Y) botSpeed *= 1.2;
+                else if (bot.y > SWAMP_ZONE_MIN_Y) botSpeed *= 0.85;
+
+                bot.x += Math.cos(bot.angle) * botSpeed * dt;
+                bot.y += Math.sin(bot.angle) * botSpeed * dt;
+
+                // Atualiza segmentos do bot
+                if (!bot.segments || bot.segments.length === 0) {
+                    bot.segments = buildInitialSegments(bot.x, bot.y, bot.angle, bot.points);
+                }
+                bot.segments[0].x = bot.x;
+                bot.segments[0].y = bot.y;
+                const targetSegCount = Math.min(240, Math.max(4, Math.floor(bot.points)));
+                while (bot.segments.length < targetSegCount) {
+                    const last = bot.segments[bot.segments.length - 1];
+                    bot.segments.push({ x: last.x, y: last.y });
+                }
+                if (bot.segments.length > targetSegCount) {
+                    bot.segments.length = targetSegCount;
+                }
+                for (let i = 1; i < bot.segments.length; i++) {
+                    const prev = bot.segments[i - 1];
+                    const curr = bot.segments[i];
+                    const dx = prev.x - curr.x;
+                    const dy = prev.y - curr.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist > SEGMENT_SPACING) {
+                        const ang = Math.atan2(dy, dx);
+                        curr.x = prev.x - Math.cos(ang) * SEGMENT_SPACING;
+                        curr.y = prev.y - Math.sin(ang) * SEGMENT_SPACING;
+                    }
+                }
+
+                // Bot come orbes
+                const botRadius = getSnakeRadius(bot.points);
+                for (const [orbId, orb] of foodOrbs.entries()) {
+                    if (orb.type === 'poison') continue;
+                    if (Math.hypot(orb.x - bot.x, orb.y - bot.y) < botRadius + (orb.radius || 6)) {
+                        bot.points += orb.value || 1;
+                        foodOrbs.delete(orbId);
+                    }
+                }
+            }
+
+            // 5. Atualiza Jogador Local (se estiver vivo)
+            if (!localPlayer.alive) return;
+
+            // Missões Relâmpago Individuais
+            if (activeMission) {
+                if (now >= activeMission.endsAt) {
+                    activeMission = null;
+                    nextMissionAt = now + 15000;
+                } else if (activeMission.type === 'ice_survive' && localPlayer.y < ICE_ZONE_MAX_Y) {
+                    activeMission.progress += dt;
+                    if (activeMission.progress >= activeMission.target) {
+                        completeMission(now);
+                    }
+                }
+            } else if (now >= nextMissionAt) {
+                assignNewMission(now);
+            }
+
+            // Direção pelo mouse (desktop)
+            if (activeTouchId === null) {
+                const dx = mouseScreenX - window.innerWidth / 2;
+                const dy = mouseScreenY - window.innerHeight / 2;
+                if (Math.hypot(dx, dy) > 8) {
+                    localPlayer.targetAngle = Math.atan2(dy, dx);
+                }
+            }
+
+            // Inércia de curva proporcional ao tamanho (cobras acima de 100 pts fazem curvas mais abertas)
+            const sizeInertia = localPlayer.points > 100
+                ? Math.max(0.45, 1 - (localPlayer.points - 100) / 900)
+                : 1;
+            const isInIceZone = localPlayer.y < ICE_ZONE_MAX_Y;
+            const isInSwampZone = localPlayer.y > SWAMP_ZONE_MIN_Y;
+            const driftFactor = isInIceZone ? 0.62 : 1.0; // Gelo tem drift suave nas curvas
+            const turnSpeed = 4.6 * sizeInertia * driftFactor;
+
+            localPlayer.angle += normalizeAngleDiff(localPlayer.targetAngle, localPlayer.angle) * Math.min(1, turnSpeed * dt);
+
+            // Lógica de Turbo + Sobreaquecimento (4s contínuos -> 2.5s cooldown)
+            const wantsBoost = isMouseDown || isSpaceDown || isTouchBoosting;
+            const hasFreeBoost = (now < localPlayer.freeBoostUntil) || (activeWorldEvent && activeWorldEvent.type === 'frenzy');
+
+            if (localPlayer.boostOverheated) {
+                localPlayer.isBoosting = false;
+                localPlayer.boostHeat = Math.max(0, localPlayer.boostHeat - (100 / 2.5) * dt);
+                if (localPlayer.boostHeat <= 0) {
+                    localPlayer.boostOverheated = false;
+                }
+            } else if (wantsBoost && (localPlayer.points > INITIAL_POINTS || hasFreeBoost)) {
+                localPlayer.isBoosting = true;
+                if (!hasFreeBoost) {
+                    localPlayer.boostHeat = Math.min(100, localPlayer.boostHeat + (100 / 4.0) * dt);
+                    if (localPlayer.boostHeat >= 100) {
+                        localPlayer.boostOverheated = true;
+                        localPlayer.isBoosting = false;
+                    }
+                    // Consome massa suavemente durante o turbo
+                    localPlayer.boostCostAccum += dt * 3.2;
+                    if (localPlayer.boostCostAccum >= 1) {
+                        const drop = Math.floor(localPlayer.boostCostAccum);
+                        localPlayer.boostCostAccum -= drop;
+                        localPlayer.points = Math.max(INITIAL_POINTS, localPlayer.points - drop);
+                        // Solta rastro de energia atrás
+                        const tail = localPlayer.segments[localPlayer.segments.length - 1];
+                        if (tail) {
+                            const id = 'b_' + Math.random().toString(36).slice(2, 9);
+                            foodOrbs.set(id, {
+                                id,
+                                x: tail.x,
+                                y: tail.y,
+                                type: 'food',
+                                color: localPlayer.color,
+                                value: 1,
+                                radius: 4.8
+                            });
+                        }
+                    }
+                }
+            } else {
+                localPlayer.isBoosting = false;
+                localPlayer.boostHeat = Math.max(0, localPlayer.boostHeat - 28 * dt);
+            }
+
+            // Velocidade final com biomas e turbo
+            let speed = localPlayer.isBoosting ? 295 : 175;
+            if (isInIceZone) speed *= 1.24;
+            else if (isInSwampZone) speed *= 0.84;
+
+            localPlayer.x += Math.cos(localPlayer.angle) * speed * dt;
+            localPlayer.y += Math.sin(localPlayer.angle) * speed * dt;
+
+            // Corrente Magnética nas Bordas Elétricas (dentro de 95px do limite puxa para o perigo)
+            const distFromCenter = Math.hypot(localPlayer.x - HALF_ARENA, localPlayer.y - HALF_ARENA);
+            const distToWall = currentArenaRadius - distFromCenter;
+            if (distToWall < 95 && distToWall > 0) {
+                const pullAngle = Math.atan2(localPlayer.y - HALF_ARENA, localPlayer.x - HALF_ARENA);
+                const pullStrength = ((95 - distToWall) / 95) * 62;
+                localPlayer.x += Math.cos(pullAngle) * pullStrength * dt;
+                localPlayer.y += Math.sin(pullAngle) * pullStrength * dt;
+            }
+
+            // Colisão com a Borda Elétrica da Arena
+            if (Math.hypot(localPlayer.x - HALF_ARENA, localPlayer.y - HALF_ARENA) >= currentArenaRadius) {
+                killLocalPlayer('Você encostou na borda elétrica da arena!');
+                return;
+            }
+
+            // Perda Metabólica de Pontos por Fome APENAS acima de 300 pontos após 2 segundos sem comer
+            if (localPlayer.points > 300 && (now - localPlayer.lastAteTime > 2000)) {
+                localPlayer.hungerAccumulator += dt * (2.5 + (localPlayer.points - 300) * 0.015);
+                if (localPlayer.hungerAccumulator >= 1) {
+                    const loss = Math.floor(localPlayer.hungerAccumulator);
+                    localPlayer.hungerAccumulator -= loss;
+                    localPlayer.points = Math.max(300, localPlayer.points - loss);
+                }
+            } else {
+                localPlayer.hungerAccumulator = 0;
+            }
+
+            // Portais de Teletransporte
+            if (localPlayer.portalCooldown > 0) localPlayer.portalCooldown -= dt;
+            if (localPlayer.portalCooldown <= 0) {
+                for (const portal of portals) {
+                    if (Math.hypot(localPlayer.x - portal.x, localPlayer.y - portal.y) < 42) {
+                        localPlayer.x = portal.targetX + Math.cos(localPlayer.angle) * 55;
+                        localPlayer.y = portal.targetY + Math.sin(localPlayer.angle) * 55;
+                        localPlayer.portalCooldown = 3.0;
+                        // Reposiciona segmentos suavemente
+                        localPlayer.segments = buildInitialSegments(localPlayer.x, localPlayer.y, localPlayer.angle, localPlayer.points);
+                        sfx.portal();
+                        spawnBurstParticles(localPlayer.x, localPlayer.y, portal.color, 16);
+                        break;
+                    }
+                }
+            }
+
+            // Atualiza Segmentos do Corpo do Jogador Local
+            localPlayer.segments[0].x = localPlayer.x;
+            localPlayer.segments[0].y = localPlayer.y;
+            const desiredSegments = Math.min(280, Math.max(4, Math.floor(localPlayer.points)));
+            while (localPlayer.segments.length < desiredSegments) {
+                const last = localPlayer.segments[localPlayer.segments.length - 1];
+                localPlayer.segments.push({ x: last.x, y: last.y });
+            }
+            if (localPlayer.segments.length > desiredSegments) {
+                localPlayer.segments.length = desiredSegments;
+            }
+            for (let i = 1; i < localPlayer.segments.length; i++) {
+                const prev = localPlayer.segments[i - 1];
+                const curr = localPlayer.segments[i];
+                const dx = prev.x - curr.x;
+                const dy = prev.y - curr.y;
+                const d = Math.hypot(dx, dy);
+                if (d > SEGMENT_SPACING) {
+                    const a = Math.atan2(dy, dx);
+                    curr.x = prev.x - Math.cos(a) * SEGMENT_SPACING;
+                    curr.y = prev.y - Math.sin(a) * SEGMENT_SPACING;
+                }
+            }
+
+            // Coleta de Orbes, Power-ups (Ímã, Visão, Fantasma) e Espinhos Venenosos
+            const headRadius = getSnakeRadius(localPlayer.points);
+            const hasMagnet = now < localPlayer.powerups.magnetUntil;
+            const magnetRange = hasMagnet ? 185 : 0;
+
+            for (const [orbId, orb] of foodOrbs.entries()) {
+                const dist = Math.hypot(orb.x - localPlayer.x, orb.y - localPlayer.y);
+
+                // Atração magnética se Ímã estiver ativo
+                if (hasMagnet && orb.type !== 'poison' && dist < magnetRange && dist > 1) {
+                    const pullAng = Math.atan2(localPlayer.y - orb.y, localPlayer.x - orb.x);
+                    orb.x += Math.cos(pullAng) * 340 * dt;
+                    orb.y += Math.sin(pullAng) * 340 * dt;
+                }
+
+                if (dist < headRadius + (orb.radius || 6)) {
+                    if (orb.type === 'poison') {
+                        // Cobrinhas pequenas (< 25 pts) passam por baixo ilesas; grandes perdem 15%
+                        if (localPlayer.points >= 25 && now >= localPlayer.powerups.ghostUntil) {
+                            localPlayer.points = Math.max(INITIAL_POINTS, Math.floor(localPlayer.points * 0.85));
+                            sfx.crash();
+                            spawnBurstParticles(orb.x, orb.y, '#a855f7', 12);
+                            foodOrbs.delete(orbId);
+                        }
+                        continue;
+                    }
+
+                    // Comeu orbe ou power-up!
+                    localPlayer.lastAteTime = now;
+                    localPlayer.points += orb.value || 1;
+                    localPlayer.maxPoints = Math.max(localPlayer.maxPoints, localPlayer.points);
+
+                    if (orb.type === 'magnet') {
+                        localPlayer.powerups.magnetUntil = now + 12000;
+                        sfx.powerup();
+                    } else if (orb.type === 'vision') {
+                        localPlayer.powerups.visionUntil = now + 12000;
+                        sfx.powerup();
+                    } else if (orb.type === 'ghost') {
+                        localPlayer.powerups.ghostUntil = now + 9000;
+                        sfx.powerup();
+                    } else {
+                        sfx.eat();
+                    }
+
+                    // Atualiza progresso de missões de coleta
+                    if (activeMission) {
+                        if (activeMission.type === 'collect_any') {
+                            activeMission.progress++;
+                        } else if (activeMission.type === 'swamp_orbs' && localPlayer.y > SWAMP_ZONE_MIN_Y) {
+                            activeMission.progress++;
+                        }
+                        if (activeMission.progress >= activeMission.target) {
+                            completeMission(now);
+                        }
+                    }
+
+                    foodOrbs.delete(orbId);
+                    if (isOnlineMode && db) {
+                        deleteDoc(doc(db, 'rooms', currentRoomCode, 'orbs', orbId)).catch(() => {});
+                    }
+                }
+            }
+
+            // Colisão com Esferas de Plasma (Minas Errantes)
+            const isGhost = now < localPlayer.powerups.ghostUntil;
+            if (!isGhost) {
+                for (const mine of plasmaMines) {
+                    if (Math.hypot(mine.x - localPlayer.x, mine.y - localPlayer.y) < headRadius + mine.radius - 4) {
+                        killLocalPlayer('Você explodiu em uma Esfera de Plasma!');
+                        return;
+                    }
+                }
+            }
+
+            // Colisão Cobra vs Cobra (Sem dano no Modo Fantasma)
+            if (!isGhost) {
+                for (const [enemyId, enemy] of remotePlayers.entries()) {
+                    if (!enemy.segments || enemy.segments.length === 0) continue;
+                    const enemyRadius = getSnakeRadius(enemy.points);
+
+                    // 1. Cabeça do jogador local bateu no corpo do inimigo -> Jogador morre
+                    for (let i = 1; i < enemy.segments.length; i++) {
+                        const seg = enemy.segments[i];
+                        if (Math.hypot(seg.x - localPlayer.x, seg.y - localPlayer.y) < headRadius + enemyRadius - 5) {
+                            killLocalPlayer(`Você bateu no corpo de ${enemy.name}!`);
+                            return;
+                        }
+                    }
+
+                    // 2. Cabeça de um bot bateu no corpo do jogador local -> Abate!
+                    if (enemy.isBot) {
+                        for (let i = 1; i < localPlayer.segments.length; i++) {
+                            const mySeg = localPlayer.segments[i];
+                            if (Math.hypot(mySeg.x - enemy.x, mySeg.y - enemy.y) < enemyRadius + headRadius - 5) {
+                                // Bot eliminado!
+                                const bonus = Math.min(80, Math.max(12, Math.floor(enemy.points * 0.35)));
+                                localPlayer.points += bonus;
+                                localPlayer.maxPoints = Math.max(localPlayer.maxPoints, localPlayer.points);
+                                localPlayer.kills++;
+                                localPlayer.killStreak++;
+                                localPlayer.freeBoostUntil = now + 5000;
+                                sfx.kill();
+                                showKillBanner(`🔥 Você eliminou ${enemy.name}! +${bonus} pts`);
+                                spawnBurstParticles(enemy.x, enemy.y, enemy.color, 20);
+
+                                // Solta orbes onde o bot caiu
+                                const dropOrbs = Math.min(35, Math.max(5, Math.floor(enemy.points * 0.45)));
+                                for (let k = 0; k < dropOrbs; k++) {
+                                    const s = enemy.segments[k % enemy.segments.length] || { x: enemy.x, y: enemy.y };
+                                    const id = 'k_' + Math.random().toString(36).slice(2, 9);
+                                    foodOrbs.set(id, {
+                                        id,
+                                        x: s.x + (Math.random() - 0.5) * 24,
+                                        y: s.y + (Math.random() - 0.5) * 24,
+                                        type: 'food',
+                                        color: enemy.color,
+                                        value: 2,
+                                        radius: 7.2
+                                    });
+                                }
+
+                                if (activeMission && activeMission.type === 'eliminate_one') {
+                                    activeMission.progress++;
+                                    if (activeMission.progress >= activeMission.target) {
+                                        completeMission(now);
+                                    }
+                                }
+
+                                // Renasce o bot em outro lugar da arena contínua
+                                const prof = BOT_PROFILES.find(b => b.id === enemyId);
+                                if (prof) spawnBot(prof, 25 + Math.floor(Math.random() * 90));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            syncLocalPlayerToCloud(now);
+        }
+
+        // =====================================================================
+        // 8. RENDERIZAÇÃO OTIMIZADA NO CANVAS (BATCH DRAWING + VIEWPORT CULLING)
+        // =====================================================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            const dpr = isLowPerfMode ? Math.min(1, window.devicePixelRatio || 1) : Math.min(1.5, window.devicePixelRatio || 1);
+            const scale = isLowPerfMode ? 0.85 : 1.0;
+            canvas.width = Math.floor(window.innerWidth * dpr * scale);
+            canvas.height = Math.floor(window.innerHeight * dpr * scale);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function getSegmentColor(baseColor, skin, index, now) {
+            if (skin === 'striped') {
+                return (Math.floor(index / 3) % 2 === 0) ? baseColor : '#f8fafc';
+            }
+            if (skin === 'neon') {
+                const pulse = Math.sin(now * 0.008 - index * 0.25) > 0;
+                return pulse ? '#34d399' : baseColor;
+            }
+            if (skin === 'rainbow') {
+                const hue = (index * 14 + now * 0.12) % 360;
+                return `hsl(${hue}, 88%, 58%)`;
+            }
+            if (skin === 'brasil') {
+                const mod = Math.floor(index / 3) % 3;
+                if (mod === 0) return '#10b981';
+                if (mod === 1) return '#facc15';
+                return '#2563eb';
+            }
+            return baseColor;
+        }
+
+        function drawSnake(snake, isLocal, viewLeft, viewRight, viewTop, viewBottom, now) {
+            const segs = snake.segments;
+            if (!segs || segs.length === 0) return;
+
+            const radius = getSnakeRadius(snake.points);
+            const isGhost = isLocal && (now < localPlayer.powerups.ghostUntil);
+
+            ctx.save();
+            if (isGhost) ctx.globalAlpha = 0.48;
+
+            // Cosméticos de Evolução por Desempenho na Partida
+            if (snake.points >= 40 && !isLowPerfMode) {
+                ctx.beginPath();
+                ctx.arc(snake.x, snake.y, radius * 1.9, 0, Math.PI * 2);
+                ctx.fillStyle = snake.points >= 160 ? 'rgba(250, 204, 21, 0.16)' : (snake.color + '22');
+                ctx.fill();
+            }
+
+            // Desenha corpo de trás para frente com Viewport Culling
+            const step = isLowPerfMode && segs.length > 90 ? 2 : 1;
+            for (let i = segs.length - 1; i >= 0; i -= step) {
+                const s = segs[i];
+                if (s.x < viewLeft - 40 || s.x > viewRight + 40 || s.y < viewTop - 40 || s.y > viewBottom + 40) {
+                    continue;
+                }
+                const taper = i > segs.length - 6 ? (0.65 + ((segs.length - i) / 6) * 0.35) : 1;
+                const r = radius * taper;
+
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = getSegmentColor(snake.color, snake.skin, i, now);
+                ctx.fill();
+            }
+
+            // Anel Orbital Dourado de Veterano (160+ pontos)
+            if (snake.points >= 160) {
+                const orbAng = now * 0.004;
+                ctx.beginPath();
+                ctx.arc(snake.x, snake.y, radius * 1.55, orbAng, orbAng + Math.PI * 1.35);
+                ctx.lineWidth = 2.6;
+                ctx.strokeStyle = '#fbbf24';
+                ctx.stroke();
+            }
+
+            // Olhos na Cabeça
+            const eyeOffset = radius * 0.48;
+            const eyeSide = radius * 0.44;
+            const eyeRadius = Math.max(2.6, radius * 0.24);
+            const cosA = Math.cos(snake.angle);
+            const sinA = Math.sin(snake.angle);
+
+            const leftEyeX = snake.x + cosA * eyeOffset - sinA * eyeSide;
+            const leftEyeY = snake.y + sinA * eyeOffset + cosA * eyeSide;
+            const rightEyeX = snake.x + cosA * eyeOffset + sinA * eyeSide;
+            const rightEyeY = snake.y + sinA * eyeOffset - cosA * eyeSide;
+
+            ctx.fillStyle = snake.points >= 90 ? '#fef08a' : '#ffffff';
+            ctx.beginPath();
+            ctx.arc(leftEyeX, leftEyeY, eyeRadius, 0, Math.PI * 2);
+            ctx.arc(rightEyeX, rightEyeY, eyeRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath();
+            ctx.arc(leftEyeX + cosA * 1.3, leftEyeY + sinA * 1.3, eyeRadius * 0.52, 0, Math.PI * 2);
+            ctx.arc(rightEyeX + cosA * 1.3, rightEyeY + sinA * 1.3, eyeRadius * 0.52, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Apelido e Pontuação acima da cabeça
+            ctx.globalAlpha = 1;
+            ctx.font = '700 12px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillText(`${snake.name} (${Math.floor(snake.points)})`, snake.x, snake.y - radius - 10);
+
+            ctx.restore();
+        }
+
+        function drawArena(now) {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Determina se o jogador está em 1º lugar com 200+ pontos (Modo Caçado)
+            let isLeaderHunted = false;
+            if (localPlayer.alive && localPlayer.points >= 200) {
+                let highest = localPlayer.points;
+                for (const p of remotePlayers.values()) {
+                    if (p.points > highest) highest = p.points;
+                }
+                if (highest === localPlayer.points) isLeaderHunted = true;
+            }
+
+            // Zoom dinâmico (Visão Ampliada vs Modo Caçado)
+            let desiredZoom = isLowPerfMode ? 0.88 : 0.96;
+            if (localPlayer.alive) {
+                if (now < localPlayer.powerups.visionUntil) desiredZoom *= 0.74;
+                else if (isLeaderHunted) desiredZoom *= 1.12;
+                camera.x += (localPlayer.x - camera.x) * 0.14;
+                camera.y += (localPlayer.y - camera.y) * 0.14;
+            } else {
+                // Câmera panorâmica suave na tela inicial
+                camera.x = HALF_ARENA + Math.cos(now * 0.00025) * 550;
+                camera.y = HALF_ARENA + Math.sin(now * 0.00025) * 550;
+            }
+            camera.zoom += (desiredZoom - camera.zoom) * 0.08;
+
+            // Fundo base escuro
+            ctx.fillStyle = '#070b14';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.save();
+            ctx.translate(w / 2, h / 2);
+            ctx.scale(camera.zoom, camera.zoom);
+            ctx.translate(-camera.x, -camera.y);
+
+            const halfW = (w / 2) / camera.zoom;
+            const halfH = (h / 2) / camera.zoom;
+            const viewLeft = camera.x - halfW;
+            const viewRight = camera.x + halfW;
+            const viewTop = camera.y - halfH;
+            const viewBottom = camera.y + halfH;
+
+            // Bioma Norte: Zona de Gelo (y < 1400)
+            if (viewTop < ICE_ZONE_MAX_Y) {
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.07)';
+                ctx.fillRect(0, 0, ARENA_SIZE, ICE_ZONE_MAX_Y);
+            }
+            // Bioma Sul: Pântano (y > 3100)
+            if (viewBottom > SWAMP_ZONE_MIN_Y) {
+                ctx.fillStyle = 'rgba(132, 204, 22, 0.07)';
+                ctx.fillRect(0, SWAMP_ZONE_MIN_Y, ARENA_SIZE, ARENA_SIZE - SWAMP_ZONE_MIN_Y);
+            }
+
+            // Grade Tática do Chão
+            const gridStep = 120;
+            const startX = Math.max(0, Math.floor(viewLeft / gridStep) * gridStep);
+            const endX = Math.min(ARENA_SIZE, Math.ceil(viewRight / gridStep) * gridStep);
+            const startY = Math.max(0, Math.floor(viewTop / gridStep) * gridStep);
+            const endY = Math.min(ARENA_SIZE, Math.ceil(viewBottom / gridStep) * gridStep);
+
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.07)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let gx = startX; gx <= endX; gx += gridStep) {
+                ctx.moveTo(gx, startY);
+                ctx.lineTo(gx, endY);
+            }
+            for (let gy = startY; gy <= endY; gy += gridStep) {
+                ctx.moveTo(startX, gy);
+                ctx.lineTo(endX, gy);
+            }
+            ctx.stroke();
+
+            // Portais de Teletransporte
+            for (const portal of portals) {
+                if (portal.x < viewLeft - 90 || portal.x > viewRight + 90 || portal.y < viewTop - 90 || portal.y > viewBottom + 90) continue;
+                ctx.save();
+                ctx.translate(portal.x, portal.y);
+                ctx.rotate(now * 0.0025);
+                ctx.beginPath();
+                ctx.arc(0, 0, 42, 0, Math.PI * 2);
+                ctx.fillStyle = portal.color + '26';
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.setLineDash([12, 8]);
+                ctx.strokeStyle = portal.color;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Orbes, Habilidades (Ímã, Visão, Fantasma) e Espinhos Venenosos
+            drawOrbs(ctx, viewLeft, viewRight, viewTop, viewBottom, now);
+
+            // Esferas de Plasma (Minas Errantes Vermelhas)
+            for (const mine of plasmaMines) {
+                if (mine.x < viewLeft - 50 || mine.x > viewRight + 50 || mine.y < viewTop - 50 || mine.y > viewBottom + 50) continue;
+                ctx.beginPath();
+                ctx.arc(mine.x, mine.y, mine.radius * 1.45, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(mine.x, mine.y, mine.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#dc2626';
+                ctx.fill();
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#fca5a5';
+                ctx.stroke();
+            }
+
+            // Cobrinhas Remotas / Bots
+            for (const enemy of remotePlayers.values()) {
+                drawSnake(enemy, false, viewLeft, viewRight, viewTop, viewBottom, now);
+            }
+
+            // Cobrinha Local
+            if (localPlayer.alive) {
+                drawSnake(localPlayer, true, viewLeft, viewRight, viewTop, viewBottom, now);
+            }
+
+            // Partículas
+            for (const pt of particles) {
+                ctx.globalAlpha = Math.max(0, pt.life * 1.8);
+                ctx.fillStyle = pt.color;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            // Borda Elétrica Circular da Arena
+            ctx.beginPath();
+            ctx.arc(HALF_ARENA, HALF_ARENA, currentArenaRadius, 0, Math.PI * 2);
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = (activeWorldEvent && activeWorldEvent.type === 'shrink') ? '#f59e0b' : '#ef4444';
+            ctx.stroke();
+
+            ctx.restore();
+            return isLeaderHunted;
+        }
+
+        // =====================================================================
+        // 9. ATUALIZAÇÃO DO HUD, RANKING E RADAR (THROTTLED PARA ECONOMIZAR CPU)
+        // =====================================================================
+        let lastHudUpdate = 0;
+        let isLeaderboardCollapsed = false;
+
+        function updateHUDAndRadar(now, isLeaderHunted) {
+            if (!localPlayer.alive) return;
+            if (now - lastHudUpdate < 110) return; // ~9 FPS no HUD/Radar para suavidade total
+            lastHudUpdate = now;
+
+            document.getElementById('hudScore').textContent = Math.floor(localPlayer.points);
+            document.getElementById('hudLength').textContent = `${Math.floor(localPlayer.points)} pts`;
+
+            // Bioma Atual
+            const biomeBadge = document.getElementById('hudBiomeBadge');
+            if (localPlayer.y < ICE_ZONE_MAX_Y) {
+                biomeBadge.textContent = '❄️ Zona de Gelo (+Vel)';
+                biomeBadge.className = 'text-[11px] max-md:text-[9px] font-bold text-sky-300 bg-sky-950/80 px-2.5 py-0.5 rounded-full border border-sky-400/30';
+            } else if (localPlayer.y > SWAMP_ZONE_MIN_Y) {
+                biomeBadge.textContent = '🫧 Pântano (2x Pontos)';
+                biomeBadge.className = 'text-[11px] max-md:text-[9px] font-bold text-lime-300 bg-lime-950/80 px-2.5 py-0.5 rounded-full border border-lime-400/30';
+            } else {
+                biomeBadge.textContent = '🌿 Zona Neutra';
+                biomeBadge.className = 'text-[11px] max-md:text-[9px] font-bold text-slate-300 bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-white/10';
+            }
+
+            // Badge Caçado
+            const huntedBadge = document.getElementById('hudLeaderHunterBadge');
+            if (isLeaderHunted) huntedBadge.classList.remove('hidden');
+            else huntedBadge.classList.add('hidden');
+
+            // Barra de Temperatura do Turbo
+            const heatBar = document.getElementById('boostHeatBar');
+            const heatLabel = document.getElementById('boostHeatLabel');
+            heatBar.style.width = `${Math.round(localPlayer.boostHeat)}%`;
+            if (localPlayer.boostOverheated) {
+                heatLabel.textContent = '🔥 Esfriando';
+                heatLabel.className = 'text-[10px] max-md:text-[9px] font-extrabold uppercase tracking-wider text-rose-400 whitespace-nowrap';
+            } else {
+                heatLabel.textContent = '⚡ Turbo';
+                heatLabel.className = 'text-[10px] max-md:text-[9px] font-extrabold uppercase tracking-wider text-amber-300 whitespace-nowrap';
+            }
+
+            // Power-ups Ativos
+            const pwContainer = document.getElementById('activePowerupsContainer');
+            let pwHtml = '';
+            if (now < localPlayer.powerups.magnetUntil) {
+                const sec = Math.ceil((localPlayer.powerups.magnetUntil - now) / 1000);
+                pwHtml += `<div class="glass-panel px-2.5 py-1 rounded-xl text-[11px] max-md:text-[9px] font-bold text-amber-300 border border-amber-400/40">🧲 Ímã Ativo (${sec}s)</div>`;
+            }
+            if (now < localPlayer.powerups.visionUntil) {
+                const sec = Math.ceil((localPlayer.powerups.visionUntil - now) / 1000);
+                pwHtml += `<div class="glass-panel px-2.5 py-1 rounded-xl text-[11px] max-md:text-[9px] font-bold text-cyan-300 border border-cyan-400/40">👁️ Visão Ampliada (${sec}s)</div>`;
+            }
+            if (now < localPlayer.powerups.ghostUntil) {
+                const sec = Math.ceil((localPlayer.powerups.ghostUntil - now) / 1000);
+                pwHtml += `<div class="glass-panel px-2.5 py-1 rounded-xl text-[11px] max-md:text-[9px] font-bold text-purple-300 border border-purple-400/40">👻 Modo Fantasma (${sec}s)</div>`;
+            }
+            pwContainer.innerHTML = pwHtml;
+
+            // Banner de Evento Relâmpago
+            const eventBanner = document.getElementById('worldEventBanner');
+            if (activeWorldEvent) {
+                eventBanner.classList.remove('hidden');
+                document.getElementById('worldEventIcon').textContent = activeWorldEvent.icon;
+                document.getElementById('worldEventTitle').textContent = activeWorldEvent.title;
+                document.getElementById('worldEventDesc').textContent = activeWorldEvent.desc;
+                document.getElementById('worldEventTimer').textContent = `${Math.max(1, Math.ceil((activeWorldEvent.endsAt - now) / 1000))}s`;
+            } else {
+                eventBanner.classList.add('hidden');
+            }
+
+            // Card de Missão Relâmpago Individual
+            const missionCard = document.getElementById('miniMissionCard');
+            if (activeMission) {
+                missionCard.classList.remove('hidden');
+                document.getElementById('miniMissionTitle').textContent = `${activeMission.title} (+${activeMission.reward})`;
+                document.getElementById('miniMissionDesc').textContent = activeMission.desc;
+                document.getElementById('miniMissionTimer').textContent = `${Math.max(1, Math.ceil((activeMission.endsAt - now) / 1000))}s`;
+                const pct = Math.min(100, Math.round((activeMission.progress / activeMission.target) * 100));
+                document.getElementById('miniMissionBar').style.width = `${pct}%`;
+                const progVal = activeMission.type === 'ice_survive' ? Math.floor(activeMission.progress) : activeMission.progress;
+                document.getElementById('miniMissionProgressText').textContent = `${progVal}/${activeMission.target}`;
+            } else {
+                missionCard.classList.add('hidden');
+            }
+
+            // Ranking da Sala (Top 4 no mobile, Top 6 no desktop)
+            const allPlayers = [
+                { id: localPlayer.id, name: localPlayer.name, points: Math.floor(localPlayer.points), isLocal: true },
+                ...Array.from(remotePlayers.values()).map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    points: Math.floor(p.points),
+                    isLocal: false
+                }))
+            ].sort((a, b) => b.points - a.points);
+
+            document.getElementById('onlineCount').textContent = `${Math.min(MAX_PLAYERS_PER_ROOM, allPlayers.length)}/${MAX_PLAYERS_PER_ROOM} vivos`;
+            const listEl = document.getElementById('leaderboardList');
+            if (isLeaderboardCollapsed) {
+                listEl.classList.add('hidden');
+            } else {
+                listEl.classList.remove('hidden');
+                const maxRows = window.innerWidth < 768 ? 4 : 6;
+                listEl.innerHTML = allPlayers.slice(0, maxRows).map((p, idx) => `
+                    <li class="flex items-center justify-between gap-1.5 ${p.isLocal ? 'text-emerald-300 font-extrabold' : 'text-slate-300'}">
+                        <span class="truncate">${idx + 1}. ${p.name}</span>
+                        <span class="font-mono font-bold">${p.points}</span>
+                    </li>
+                `).join('');
+            }
+
+            // Desenho do Minimapa Circular
+            const mw = minimapCanvas.width;
+            const mh = minimapCanvas.height;
+            const mr = mw / 2;
+            minimapCtx.clearRect(0, 0, mw, mh);
+
+            minimapCtx.save();
+            minimapCtx.beginPath();
+            minimapCtx.arc(mr, mr, mr - 2, 0, Math.PI * 2);
+            minimapCtx.clip();
+
+            minimapCtx.fillStyle = '#070c18';
+            minimapCtx.fillRect(0, 0, mw, mh);
+
+            // Faixas de bioma no minimapa
+            minimapCtx.fillStyle = 'rgba(56, 189, 248, 0.22)';
+            minimapCtx.fillRect(0, 0, mw, (ICE_ZONE_MAX_Y / ARENA_SIZE) * mh);
+            minimapCtx.fillStyle = 'rgba(132, 204, 22, 0.22)';
+            minimapCtx.fillRect(0, (SWAMP_ZONE_MIN_Y / ARENA_SIZE) * mh, mw, mh);
+
+            // Portais no minimapa
+            for (const portal of portals) {
+                minimapCtx.fillStyle = portal.color;
+                minimapCtx.beginPath();
+                minimapCtx.arc((portal.x / ARENA_SIZE) * mw, (portal.y / ARENA_SIZE) * mh, 2.8, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+
+            // Adversários no minimapa
+            for (const enemy of remotePlayers.values()) {
+                minimapCtx.fillStyle = enemy.points >= 200 ? '#f43f5e' : '#94a3b8';
+                minimapCtx.beginPath();
+                minimapCtx.arc((enemy.x / ARENA_SIZE) * mw, (enemy.y / ARENA_SIZE) * mh, 2.4, 0, Math.PI * 2);
+                minimapCtx.fill();
+            }
+
+            // Jogador Local no minimapa
+            minimapCtx.fillStyle = '#34d399';
+            minimapCtx.beginPath();
+            minimapCtx.arc((localPlayer.x / ARENA_SIZE) * mw, (localPlayer.y / ARENA_SIZE) * mh, 3.6, 0, Math.PI * 2);
+            minimapCtx.fill();
+
+            minimapCtx.restore();
+        }
+
+        // =====================================================================
+        // 10. EVENTOS DE INTERFACE, MOUSE, TECLADO E TOUCH MOBILE
+        // =====================================================================
+        // Seletor de Cores
+        document.querySelectorAll('.color-swatch').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedColor = btn.dataset.color;
+                document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            });
+        });
+
+        // Seletor de Estampas
+        document.querySelectorAll('.skin-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedSkin = btn.dataset.skin;
+                document.querySelectorAll('.skin-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            });
+        });
+
+        // Alternância Arena Pública vs Sala Privada
+        const publicRoomTab = document.getElementById('publicRoomTab');
+        const privateRoomTab = document.getElementById('privateRoomTab');
+        const privateRoomPanel = document.getElementById('privateRoomPanel');
+        const roomModeBadge = document.getElementById('roomModeBadge');
+        const roomCodeInput = document.getElementById('roomCodeInput');
+
+        function setRoomMode(privateMode) {
+            isPrivateRoom = privateMode;
+            if (privateMode) {
+                privateRoomPanel.classList.remove('hidden');
+                publicRoomTab.className = 'py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition cursor-pointer';
+                privateRoomTab.className = 'py-2.5 px-3 rounded-xl text-[13px] font-extrabold bg-[#10b981] text-slate-950 transition shadow-md shadow-emerald-500/20 cursor-pointer';
+                if (!roomCodeInput.value.trim()) {
+                    roomCodeInput.value = Math.random().toString(36).substring(2, 7).toUpperCase();
+                }
+                currentRoomCode = roomCodeInput.value.trim().toUpperCase();
+                roomModeBadge.textContent = `🔒 Sala ${currentRoomCode}`;
+            } else {
+                privateRoomPanel.classList.add('hidden');
+                currentRoomCode = 'PUBLICA';
+                publicRoomTab.className = 'py-2.5 px-3 rounded-xl text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20 cursor-pointer';
+                privateRoomTab.className = 'py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition cursor-pointer';
+                roomModeBadge.textContent = '🌐 Arena Pública';
+            }
+            if (isOnlineMode) subscribeToRoom(currentRoomCode);
+        }
+
+        publicRoomTab.addEventListener('click', () => setRoomMode(false));
+        privateRoomTab.addEventListener('click', () => setRoomMode(true));
+
+        if (isPrivateRoom) {
+            roomCodeInput.value = currentRoomCode;
+            setRoomMode(true);
+        }
+
+        document.getElementById('generateRoomBtn').addEventListener('click', () => {
+            const code = Math.random().toString(36).substring(2, 7).toUpperCase();
+            roomCodeInput.value = code;
+            currentRoomCode = code;
+            roomModeBadge.textContent = `🔒 Sala ${code}`;
+            if (isOnlineMode) subscribeToRoom(currentRoomCode);
+        });
+
+        roomCodeInput.addEventListener('input', () => {
+            const clean = roomCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+            roomCodeInput.value = clean;
+            currentRoomCode = clean || 'PRIVADA';
+            roomModeBadge.textContent = `🔒 Sala ${currentRoomCode}`;
+        });
+
+        function copyInviteLink() {
+            const url = new URL(window.location.href);
+            if (isPrivateRoom && currentRoomCode !== 'PUBLICA') {
+                url.searchParams.set('sala', currentRoomCode);
+            } else {
+                url.searchParams.delete('sala');
+            }
+            const tempInput = document.createElement('input');
+            tempInput.value = url.toString();
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            const toast = document.getElementById('toastNotification');
+            toast.classList.remove('opacity-0');
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => toast.classList.add('opacity-0'), 2200);
+        }
+
+        document.getElementById('copyLobbyInviteBtn').addEventListener('click', copyInviteLink);
+        document.getElementById('inviteBtnHud').addEventListener('click', copyInviteLink);
+
+        // Formulário Entrar na Sala
+        document.getElementById('joinForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (isPrivateRoom) {
+                currentRoomCode = roomCodeInput.value.trim().toUpperCase() || 'PRIVADA';
+            }
+            startLocalPlayer();
+        });
+
+        // Botões Game Over
+        document.getElementById('playAgainBtn').addEventListener('click', startLocalPlayer);
+        document.getElementById('backToLobbyBtn').addEventListener('click', () => {
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+            document.getElementById('gameOverOverlay').classList.remove('flex');
+            document.getElementById('lobbyOverlay').classList.remove('hidden');
+        });
+
+        // Botão Minimizar Ranking no Mobile
+        const toggleLbBtn = document.getElementById('toggleLeaderboardBtn');
+        toggleLbBtn.addEventListener('click', () => {
+            isLeaderboardCollapsed = !isLeaderboardCollapsed;
+            toggleLbBtn.textContent = isLeaderboardCollapsed ? '+' : '−';
+        });
+
+        // Botão Mudo
+        document.getElementById('muteBtnHud').addEventListener('click', () => {
+            sfx.muted = !sfx.muted;
+            document.getElementById('soundIconOn').classList.toggle('hidden', sfx.muted);
+            document.getElementById('soundIconOff').classList.toggle('hidden', !sfx.muted);
+        });
+
+        // Botão Modo Leve / HD
+        const perfBtnHud = document.getElementById('perfBtnHud');
+        function updatePerfButtonUI() {
+            perfBtnHud.textContent = isLowPerfMode ? '⚡ Leve' : '✨ HD';
+            document.body.classList.toggle('hq-mode', !isLowPerfMode);
+            resizeCanvas();
+        }
+        updatePerfButtonUI();
+        perfBtnHud.addEventListener('click', () => {
+            isLowPerfMode = !isLowPerfMode;
+            updatePerfButtonUI();
+        });
+
+        // Controles Desktop (Mouse + Espaço)
+        window.addEventListener('mousemove', (e) => {
+            mouseScreenX = e.clientX;
+            mouseScreenY = e.clientY;
+        });
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && localPlayer.alive) isMouseDown = true;
+        });
+        window.addEventListener('mouseup', () => { isMouseDown = false; });
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') isSpaceDown = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') isSpaceDown = false;
+        });
+
+        // Controles Touch Mobile (Arraste para guiar + Dois toques rápidos para turbo)
+        const dragIndicator = document.getElementById('touchDragIndicator');
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (!localPlayer.alive) return;
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            const now = performance.now();
+
+            // Detecta dois toques rápidos (< 320ms) para ativar turbo enquanto segurar
+            if (now - lastTapTime < 320) {
+                isTouchBoosting = true;
+                dragIndicator.classList.add('boosting');
+            } else {
+                isTouchBoosting = false;
+                dragIndicator.classList.remove('boosting');
+            }
+            lastTapTime = now;
+
+            if (activeTouchId === null) {
+                activeTouchId = touch.identifier;
+                touchOriginX = touch.clientX;
+                touchOriginY = touch.clientY;
+                dragIndicator.style.left = `${touch.clientX}px`;
+                dragIndicator.style.top = `${touch.clientY}px`;
+                dragIndicator.style.display = 'block';
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!localPlayer.alive || activeTouchId === null) return;
+            e.preventDefault();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === activeTouchId) {
+                    const dx = touch.clientX - touchOriginX;
+                    const dy = touch.clientY - touchOriginY;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist > 10) {
+                        localPlayer.targetAngle = Math.atan2(dy, dx);
+                        // Desloca levemente a âncora em curvas longas para resposta contínua
+                        if (dist > 55) {
+                            touchOriginX = touch.clientX - Math.cos(localPlayer.targetAngle) * 42;
+                            touchOriginY = touch.clientY - Math.sin(localPlayer.targetAngle) * 42;
+                            dragIndicator.style.left = `${touchOriginX}px`;
+                            dragIndicator.style.top = `${touchOriginY}px`;
+                        }
+                    }
+                    break;
+                }
+            }
+        }, { passive: false });
+
+        function handleTouchEnd(e) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === activeTouchId) {
+                    activeTouchId = null;
+                    isTouchBoosting = false;
+                    dragIndicator.style.display = 'none';
+                    dragIndicator.classList.remove('boosting');
+                    break;
+                }
+            }
+        }
+        canvas.addEventListener('touchend', handleTouchEnd);
+        canvas.addEventListener('touchcancel', handleTouchEnd);
+
+        // =====================================================================
+        // 11. LOOP PRINCIPAL A 60 FPS
+        // =====================================================================
+        let lastFrameTime = performance.now();
+
+        function gameLoop(now) {
+            const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+            lastFrameTime = now;
+
+            if (foodOrbs.size < TARGET_ORB_COUNT * 0.7) {
+                ensureArenaPopulation();
+            }
+
+            updateSimulation(dt, now);
+            const isLeaderHunted = drawArena(now);
+            updateHUDAndRadar(now, isLeaderHunted);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Inicialização no carregamento da janela
+        window.addEventListener('load', () => {
+            ensureArenaPopulation();
+            initFirebaseConnection();
+            lastFrameTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        });
+    </script>
+</body>
+</html>
