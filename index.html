@@ -881,10 +881,20 @@
     document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
       isPlaying = false;
       if (me) me.alive = false;
+
+      // Limpa ouvintes para evitar vazamento de memória e travamentos
+      if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
+      if (unsubOrbs) { unsubOrbs(); unsubOrbs = null; }
+
       await removePlayerFromCloud();
+
+      // Esconde HUD e exibe o lobby de forma segura
       document.getElementById('hudOverlay').classList.add('hidden');
       document.getElementById('gameOverOverlay').classList.add('hidden');
-      lobbyOverlay.classList.remove('hidden');
+      document.getElementById('lobbyOverlay').classList.remove('hidden');
+
+      remotePlayers.clear();
+      me = null;
     });
 
     document.getElementById('toggleGfxBtn').addEventListener('click', (e) => {
@@ -949,6 +959,8 @@
     }
 
     window.addEventListener('beforeunload', () => {
+      if (unsubPlayers) unsubPlayers();
+      if (unsubOrbs) unsubOrbs();
       removePlayerFromCloud();
     });
 
