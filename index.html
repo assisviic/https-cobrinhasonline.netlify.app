@@ -549,7 +549,18 @@
       return list;
     }
 
-    // ==================== CONEXÃO FIREBASE ====================
+    // ==================== CONEXÃO FIREBASE + INTERPOLAÇÃO SUAVE ====================
+    function normalizeAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function lerpAngle(current, target, t) {
+      const diff = normalizeAngle(target - current);
+      return current + diff * t;
+    }
+
     function subscribeToRoom(roomId) {
       if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
       if (unsubOrbs) { unsubOrbs(); unsubOrbs = null; }
@@ -560,14 +571,65 @@
       const playersCol = collection(db, 'rooms', roomId, 'players');
       unsubPlayers = onSnapshot(playersCol, (snapshot) => {
         const now = Date.now();
-        remotePlayers.clear();
+        const activeIds = new Set();
+
         snapshot.forEach((docSnap) => {
           if (docSnap.id === currentUser.uid) return;
           const data = docSnap.data();
+
           if (data.lastSeen && now - data.lastSeen < 14000 && data.alive) {
-            remotePlayers.set(docSnap.id, { id: docSnap.id, ...data });
+            activeIds.add(docSnap.id);
+            const existing = remotePlayers.get(docSnap.id);
+            const incomingSegs = Array.isArray(data.segments) ? data.segments : [];
+
+            if (!existing) {
+              // Primeiro contato: inicializa pontos de renderização já na posição exata
+              remotePlayers.set(docSnap.id, {
+                id: docSnap.id,
+                ...data,
+                targetX: data.x,
+                targetY: data.y,
+                targetAngle: data.angle || 0,
+                targetSegments: incomingSegs.map(s => ({ x: s.x, y: s.y })),
+                segments: incomingSegs.map(s => ({ x: s.x, y: s.y })),
+                lastPacketTime: performance.now()
+              });
+            } else {
+              // Atualiza apenas os alvos (targets); o loop de 60 FPS interpola suavemente
+              existing.name = data.name;
+              existing.color = data.color;
+              existing.skin = data.skin;
+              existing.alive = data.alive;
+              existing.score = data.score;
+              existing.kills = data.kills;
+              existing.ghost = data.ghost;
+              existing.boosting = Boolean(data.boosting);
+              existing.lastSeen = data.lastSeen;
+
+              // Se houve teleporte de portal (salto > 450px), encaixa imediatamente
+              const jumpDist = Math.hypot(data.x - existing.x, data.y - existing.y);
+              if (jumpDist > 450) {
+                existing.x = data.x;
+                existing.y = data.y;
+                existing.angle = data.angle || 0;
+                existing.segments = incomingSegs.map(s => ({ x: s.x, y: s.y }));
+              }
+
+              existing.targetX = data.x;
+              existing.targetY = data.y;
+              existing.targetAngle = data.angle || 0;
+              existing.targetSegments = incomingSegs;
+              existing.lastPacketTime = performance.now();
+            }
           }
         });
+
+        // Remove quem saiu ou morreu
+        for (const id of remotePlayers.keys()) {
+          if (!activeIds.has(id)) {
+            remotePlayers.delete(id);
+          }
+        }
 
         const totalHumans = remotePlayers.size + (isPlaying ? 1 : 0);
         const displayCount = Math.min(MAX_ROOM_PLAYERS, Math.max(1, totalHumans));
@@ -589,6 +651,51 @@
           try {
             await setDoc(orbsDocRef, { items: orbs, updatedAt: Date.now() });
           } catch (_) {}
+        }
+      });
+    }
+
+    // Atualiza suavemente todos os jogadores remotos a 60 FPS (Interpolação + Dead Reckoning)
+    function updateRemotePlayersSmooth(dt) {
+      const now = performance.now();
+      const posBlend = 1 - Math.exp(-16 * dt);
+      const segBlend = 1 - Math.exp(-18 * dt);
+
+      remotePlayers.forEach((rp) => {
+        if (!rp.alive) return;
+
+        // 1. Previsão leve de movimento (Dead Reckoning) enquanto aguarda próximo pacote
+        const packetAge = Math.min(0.22, (now - (rp.lastPacketTime || now)) / 1000);
+        const estSpeed = rp.boosting ? BOOST_SPEED : BASE_SPEED;
+        const predictedX = rp.targetX + Math.cos(rp.targetAngle) * estSpeed * packetAge * 0.65;
+        const predictedY = rp.targetY + Math.sin(rp.targetAngle) * estSpeed * packetAge * 0.65;
+
+        // 2. Interpola posição e ângulo da cabeça
+        rp.x += (predictedX - rp.x) * posBlend;
+        rp.y += (predictedY - rp.y) * posBlend;
+        rp.angle = lerpAngle(rp.angle || 0, rp.targetAngle || 0, posBlend);
+
+        // 3. Interpola cada segmento do corpo e mantém a cadeia conectada
+        const targets = rp.targetSegments || [];
+        if (targets.length > 0) {
+          // Ajusta tamanho do array de segmentos suavemente
+          while (rp.segments.length < targets.length) {
+            const last = rp.segments[rp.segments.length - 1] || { x: rp.x, y: rp.y };
+            rp.segments.push({ x: last.x, y: last.y });
+          }
+          if (rp.segments.length > targets.length) {
+            rp.segments.length = targets.length;
+          }
+
+          rp.segments[0].x = rp.x;
+          rp.segments[0].y = rp.y;
+
+          for (let i = 1; i < rp.segments.length; i++) {
+            const curr = rp.segments[i];
+            const targ = targets[i];
+            curr.x += (targ.x - curr.x) * segBlend;
+            curr.y += (targ.y - curr.y) * segBlend;
+          }
         }
       });
     }
@@ -762,7 +869,7 @@
 
       isPlaying = true;
       assignNewMission();
-      syncPlayerToCloud(true);
+      syncPlayerToCloud(true, false);
     }
 
     startGameBtn.addEventListener('click', startMatch);
@@ -783,14 +890,14 @@
     });
     document.getElementById('toggleGfxBtn').textContent = lowGraphics ? '⚡ Leve' : '✨ HD';
 
-    // ==================== SINCRONIZAÇÃO EM NUVEM ====================
-    async function syncPlayerToCloud(force = false) {
+    // ==================== SINCRONIZAÇÃO EM NUVEM (85ms OTIMIZADO) ====================
+    async function syncPlayerToCloud(force = false, activeBoost = false) {
       if (!isOnlineConnected || !currentUser || !me) return;
       const now = Date.now();
-      if (!force && now - lastNetSyncTime < 140) return;
+      if (!force && now - lastNetSyncTime < 85) return;
       lastNetSyncTime = now;
 
-      const step = me.segments.length > 60 ? 2 : 1;
+      const step = me.segments.length > 55 ? 2 : 1;
       const compactSegments = [];
       for (let i = 0; i < me.segments.length; i += step) {
         compactSegments.push({
@@ -808,6 +915,7 @@
           x: Math.round(me.x),
           y: Math.round(me.y),
           angle: Number(me.angle.toFixed(2)),
+          boosting: activeBoost,
           score: Math.round(me.score),
           kills: me.kills,
           ghost: me.powers.ghost > 0,
@@ -892,12 +1000,6 @@
     });
 
     // ==================== FÍSICA E MECÂNICAS ====================
-    function normalizeAngle(a) {
-      while (a > Math.PI) a -= Math.PI * 2;
-      while (a < -Math.PI) a += Math.PI * 2;
-      return a;
-    }
-
     function growSnake(snake, amount) {
       const tail = snake.segments[snake.segments.length - 1];
       for (let i = 0; i < amount; i++) {
@@ -929,7 +1031,7 @@
       isPlaying = false;
       playTone(150, 0.35, 'sawtooth', 0.09);
       spawnDeathOrbs(me);
-      syncPlayerToCloud(true);
+      syncPlayerToCloud(true, false);
 
       document.getElementById('deathReasonText').textContent = reason;
       document.getElementById('finalScoreText').textContent = Math.round(me.score);
@@ -1386,6 +1488,9 @@
       const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
+      // Suaviza jogadores remotos a 60 FPS tanto no lobby quanto na partida
+      updateRemotePlayersSmooth(dt);
+
       if (isPlaying) {
         if (!globalEvent && now > nextEventCheck) {
           triggerGlobalEvent();
@@ -1453,7 +1558,7 @@
 
         updateBots(dt);
         checkCollisions();
-        syncPlayerToCloud(false);
+        syncPlayerToCloud(false, canBoost);
         updateHUD();
         drawMinimap();
       } else {
