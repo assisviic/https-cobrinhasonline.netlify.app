@@ -47,7 +47,7 @@
   <!-- CANVAS DO JOGO -->
   <canvas id="gameCanvas"></canvas>
 
-  <!-- HUD SUPERIOR COMPACTO -->
+  <!-- HUD SUPERIOR -->
   <div id="hudOverlay" class="hidden fixed inset-0 pointer-events-none z-20 p-2 sm:p-4 flex flex-col justify-between">
     <div class="flex items-start justify-between gap-1.5 sm:gap-2">
       <div class="flex flex-col gap-1 sm:gap-2 max-w-[162px] sm:max-w-[270px]">
@@ -71,63 +71,16 @@
               <div id="turboBar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-75" style="width: 100%"></div>
             </div>
           </div>
-          <div id="activePowersHud" class="flex flex-wrap gap-1 mt-1 sm:mt-2 empty:hidden"></div>
         </div>
       </div>
 
       <div class="flex flex-col items-end gap-1 sm:gap-2">
         <div class="flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
-          <span id="hudRoomBadge" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-950/85 border border-slate-800 text-[11px] font-bold text-emerald-300">
-            🌐 Pública
-          </span>
-          <button id="toggleGfxBtn" type="button" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-700 text-[10px] sm:text-[11px] font-bold text-slate-200 transition">
-            ✨ HD
-          </button>
-          <button id="leaveRoomBtn" type="button" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-rose-950/80 hover:bg-rose-800 border border-rose-500/40 text-[10px] sm:text-[11px] font-bold text-rose-200 transition pointer-events-auto">
-            Sair
+          <button id="leaveRoomBtn" type="button" class="px-3 py-1 rounded-xl bg-rose-950/90 hover:bg-rose-800 border border-rose-500/40 text-xs font-bold text-rose-200 transition pointer-events-auto shadow-md">
+            Sair para o Lobby
           </button>
         </div>
-
-        <div class="bg-slate-950/75 border border-slate-800/80 rounded-xl sm:rounded-2xl px-2 py-1.5 sm:p-2.5 w-[114px] sm:w-[190px] backdrop-blur-sm shadow-lg">
-          <div class="flex items-center justify-between mb-0.5 sm:mb-1.5">
-            <span class="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-amber-400">🏆 Top</span>
-            <span id="hudPlayersOnline" class="text-[8px] sm:text-[10px] font-bold text-slate-400">1/10</span>
-          </div>
-          <div id="leaderboardList" class="space-y-0.5 sm:space-y-1 text-[9px] sm:text-[11px] leading-tight"></div>
-        </div>
       </div>
-    </div>
-
-    <div class="flex items-end justify-between">
-      <div class="bg-slate-950/70 border border-slate-800/75 rounded-lg sm:rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 text-[9px] sm:text-xs text-slate-300">
-        <span class="hidden sm:inline">🖱️ Mova o mouse para guiar • Segure <b>Clique / Espaço</b> para Turbo</span>
-        <span class="sm:hidden">👆 Arraste • <b>2 toques</b>: Turbo</span>
-      </div>
-      <div class="relative rounded-xl sm:rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950/80 shadow-xl">
-        <canvas id="minimapCanvas" width="116" height="116" class="block w-[74px] h-[74px] sm:w-[116px] sm:h-[116px]"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- TELA DE GAME OVER -->
-  <div id="gameOverOverlay" class="hidden fixed inset-0 z-40 items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
-    <div class="w-full max-w-[360px] rounded-3xl bg-[#0e1526] border border-rose-500/30 p-6 text-center shadow-2xl">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-3xl mb-3">💥</div>
-      <h2 class="text-2xl font-black text-white">Você foi eliminado!</h2>
-      <p id="deathReasonText" class="text-xs text-slate-400 mt-1 mb-4">Você colidiu com outro jogador.</p>
-      <div class="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 mb-5">
-        <div>
-          <div class="text-[10px] font-bold uppercase text-slate-400">Pontuação Final</div>
-          <div id="finalScoreText" class="text-xl font-black text-emerald-400">0</div>
-        </div>
-        <div>
-          <div class="text-[10px] font-bold uppercase text-slate-400">Eliminações</div>
-          <div id="finalKillsText" class="text-xl font-black text-amber-400">0</div>
-        </div>
-      </div>
-      <button id="respawnBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wide shadow-lg transition">
-        JOGAR NOVAMENTE
-      </button>
     </div>
   </div>
 
@@ -162,575 +115,25 @@
         />
       </div>
 
-      <div class="mb-3 sm:mb-3.5">
-        <span class="block text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1">
-          ESCOLHA A COR DA SUA COBRINHA
-        </span>
-        <div id="colorPicker" class="flex flex-wrap justify-center items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#0e1525]/90 border border-slate-800/90">
-          <button type="button" data-color="#10b981" class="color-swatch w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#10b981] ring-[3px] ring-white shadow-[0_0_14px_rgba(255,255,255,0.55)] transition transform scale-105"></button>
-          <button type="button" data-color="#3b82f6" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#3b82f6] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#ef4444" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#ef4444] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#a855f7" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#a855f7] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#f59e0b" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#f59e0b] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#06b6d4" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#06b6d4] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#ec4899" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#ec4899] opacity-90 hover:opacity-100 transition"></button>
-        </div>
-      </div>
-
-      <div id="skinPicker" class="grid grid-cols-2 gap-2 sm:gap-2.5 mb-3 sm:mb-4">
-        <button type="button" data-skin="solid" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#13292a] border border-emerald-400/70 text-white transition">Clássico Sólido</button>
-        <button type="button" data-skin="striped" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 transition">Listrado</button>
-        <button type="button" data-skin="neon" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 transition">Neon Pulse</button>
-        <button type="button" data-skin="rainbow" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 transition">Arco-Íris</button>
-        <button type="button" data-skin="brasil" class="skin-btn col-span-2 py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 transition">Brasil</button>
-      </div>
-
-      <div class="p-3 sm:p-3.5 rounded-2xl bg-[#0d1424] border border-slate-800/90 mb-3 sm:mb-4">
-        <div class="flex items-center justify-between gap-1.5 mb-2.5">
-          <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase">MODO DE SALA</span>
-          <div class="flex items-center gap-1.5">
-            <span id="lobbyRoomCount" class="px-2 py-0.5 rounded-full bg-[#13253a] border border-sky-500/30 text-[10px] font-bold text-sky-300">👥 1/10 na sala</span>
-            <span id="lobbyRoomBadge" class="px-2 py-0.5 rounded-full bg-[#102e26] border border-emerald-500/30 text-[10px] font-bold text-emerald-300">🌐 Arena Pública</span>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <button id="publicRoomBtn" type="button" class="py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md">Arena Pública</button>
-          <button id="privateRoomBtn" type="button" class="py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition">Sala Privada 🔒</button>
-        </div>
-        <div id="privateRoomPanel" class="hidden mt-2.5 pt-2.5 border-t border-slate-800 space-y-2">
-          <div class="flex gap-1.5">
-            <input id="roomCodeInput" type="text" maxlength="8" placeholder="CÓDIGO" class="min-w-0 flex-1 px-2.5 py-2 rounded-lg bg-[#090e1a] border border-slate-700 text-xs font-bold uppercase text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
-            <button id="createRoomBtn" type="button" class="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-300 border border-emerald-500/30 shrink-0">Gerar</button>
-            <button id="copyRoomLinkBtn" type="button" class="px-2.5 py-2 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-xs font-bold text-emerald-300 border border-emerald-500/40 shrink-0">Copiar Link</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="connectionStatus" class="flex items-center justify-center gap-1.5 text-xs sm:text-[13px] mb-3 sm:mb-4">
-        <span id="connDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse"></span>
-        <span id="connTitle" class="font-bold text-amber-400">Conectando...</span>
-        <span id="connSub" class="text-slate-300">Aguardando servidor.</span>
-      </div>
-
-      <button id="startGameBtn" type="button" class="w-full py-3 sm:py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-sm sm:text-base tracking-wide uppercase shadow-lg shadow-emerald-500/25 transition">
+      <button id="startGameBtn" type="button" class="w-full py-3.5 sm:py-4 rounded-2xl bg-[#10b981] hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-sm sm:text-base tracking-wide uppercase shadow-lg shadow-emerald-500/25 transition">
         ENTRAR NA SALA
       </button>
 
     </div>
   </div>
 
-  <!-- SCRIPT COMPLETO DE LÓGICA -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-    import {
-      getFirestore,
-      collection,
-      doc,
-      setDoc,
-      deleteDoc,
-      onSnapshot
-    } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBQ7A9l81CbX3Bzn-wTkAVQBKci8251UNU",
-      authDomain: "servidor-de-cobrinhas.firebaseapp.com",
-      projectId: "servidor-de-cobrinhas",
-      storageBucket: "servidor-de-cobrinhas.firebasestorage.app",
-      messagingSenderId: "689255081213",
-      appId: "1:689255081213:web:769cb127bb70980a278a94",
-      measurementId: "G-N6J0C62JMM"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const ARENA_SIZE = 3200;
-    const MAX_ROOM_PLAYERS = 10;
-    const TARGET_TOTAL_SNAKES = 8;
-    const BASE_SPEED = 235;
-    const BOOST_SPEED = 415;
-    const SEGMENT_SPACING = 6.5;
-    const INITIAL_LENGTH = 18;
-    const ORB_PALETTE = ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf'];
-
-    const ICE_ZONE = { x: 820, y: 820, r: 460 };
-    const SWAMP_ZONE = { x: 2380, y: 2380, r: 480 };
-    const PORTALS = [
-      { id: 'A', x: 650, y: 2550, targetX: 2550, targetY: 650, color: '#38bdf8' },
-      { id: 'B', x: 2550, y: 650, targetX: 650, targetY: 2550, color: '#c084fc' }
-    ];
-
+  <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
-    const miniCanvas = document.getElementById('minimapCanvas');
-    const miniCtx = miniCanvas.getContext('2d');
-
-    let selectedColor = '#10b981';
-    let selectedSkin = 'solid';
-    let roomMode = 'public';
-    let currentRoomId = 'public_arena_1';
-
-    let currentUser = null;
-    let isOnlineConnected = false;
-    let unsubPlayers = null;
-    let unsubOrbs = null;
+    const lobbyOverlay = document.getElementById('lobbyOverlay');
+    const hudOverlay = document.getElementById('hudOverlay');
+    const startGameBtn = document.getElementById('startGameBtn');
+    const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+    const nicknameInput = document.getElementById('nicknameInput');
 
     let isPlaying = false;
-    let lowGraphics = window.innerWidth < 768;
-    let lastFrameTime = performance.now();
-    let lastNetSyncTime = 0;
-    let lastOrbSyncTime = 0;
-
-    let me = null;
-    let remotePlayers = new Map();
-    let bots = [];
+    let me = { x: 1600, y: 1600, score: 10, kills: 0, segments: [] };
     let orbs = [];
-    let portalCooldown = 0;
-
-    let isBoosting = false;
-    let turboEnergy = 100;
-    let turboOverheated = false;
-
-    let globalEvent = null;
-    let nextEventCheck = performance.now() + 18000;
-    let currentMission = null;
-
-    let mouseScreenX = window.innerWidth / 2;
-    let mouseScreenY = window.innerHeight / 2;
-    let lastTapTime = 0;
-
-    let audioCtx = null;
-    function playTone(freq, duration = 0.08, type = 'sine', vol = 0.05) {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (_) {}
-    }
-
-    const connDot = document.getElementById('connDot');
-    const connTitle = document.getElementById('connTitle');
-    const connSub = document.getElementById('connSub');
-
-    function setConnectionUI(status, title, sub) {
-      connDot.className = 'w-2 h-2 rounded-full inline-block';
-      connTitle.className = 'font-bold';
-      if (status === 'online') {
-        connDot.classList.add('bg-emerald-400');
-        connTitle.classList.add('text-emerald-400');
-      } else if (status === 'warn') {
-        connDot.classList.add('bg-amber-400');
-        connTitle.classList.add('text-amber-400');
-      } else {
-        connDot.classList.add('bg-rose-400');
-        connTitle.classList.add('text-rose-400');
-      }
-      connTitle.textContent = title;
-      connSub.textContent = sub;
-    }
-
-    document.querySelectorAll('.color-swatch').forEach(btn => {
-      btn.addEventListener('click', () => {
-        selectedColor = btn.dataset.color;
-        document.querySelectorAll('.color-swatch').forEach(b => {
-          b.classList.remove('w-9', 'h-9', 'sm:w-11', 'sm:h-11', 'ring-[3px]', 'ring-white', 'shadow-[0_0_14px_rgba(255,255,255,0.55)]', 'scale-105');
-          b.classList.add('w-8', 'h-8', 'sm:w-10', 'sm:h-10', 'opacity-90');
-        });
-        btn.classList.remove('w-8', 'h-8', 'sm:w-10', 'sm:h-10', 'opacity-90');
-        btn.classList.add('w-9', 'h-9', 'sm:w-11', 'sm:h-11', 'ring-[3px]', 'ring-white', 'shadow-[0_0_14px_rgba(255,255,255,0.55)]', 'scale-105');
-      });
-    });
-
-    document.querySelectorAll('.skin-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        selectedSkin = btn.dataset.skin;
-        const isBrasil = btn.dataset.skin === 'brasil';
-        document.querySelectorAll('.skin-btn').forEach(b => {
-          const spanClass = b.dataset.skin === 'brasil' ? 'col-span-2 ' : '';
-          b.className = `skin-btn ${spanClass}py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition`;
-        });
-        const activeSpan = isBrasil ? 'col-span-2 ' : '';
-        btn.className = `skin-btn ${activeSpan}py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#13292a] border border-emerald-400/70 text-white transition`;
-      });
-    });
-
-    const publicRoomBtn = document.getElementById('publicRoomBtn');
-    const privateRoomBtn = document.getElementById('privateRoomBtn');
-    const privateRoomPanel = document.getElementById('privateRoomPanel');
-    const roomCodeInput = document.getElementById('roomCodeInput');
-    const lobbyRoomBadge = document.getElementById('lobbyRoomBadge');
-    const lobbyOverlay = document.getElementById('lobbyOverlay');
-    const startGameBtn = document.getElementById('startGameBtn');
-
-    function updateRoomSelection(mode) {
-      roomMode = mode;
-      if (mode === 'public') {
-        currentRoomId = 'public_arena_1';
-        publicRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20';
-        privateRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition';
-        privateRoomPanel.classList.add('hidden');
-        lobbyRoomBadge.textContent = '🌐 Arena Pública';
-      } else {
-        privateRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20';
-        publicRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition';
-        privateRoomPanel.classList.remove('hidden');
-        if (!roomCodeInput.value.trim()) {
-          roomCodeInput.value = 'SALA' + Math.floor(100 + Math.random() * 900);
-        }
-        currentRoomId = 'private_' + roomCodeInput.value.trim().toUpperCase();
-        lobbyRoomBadge.textContent = '🔒 ' + roomCodeInput.value.trim().toUpperCase();
-      }
-      subscribeToRoom(currentRoomId);
-    }
-
-    publicRoomBtn.addEventListener('click', () => updateRoomSelection('public'));
-    privateRoomBtn.addEventListener('click', () => updateRoomSelection('private'));
-    document.getElementById('createRoomBtn').addEventListener('click', () => {
-      roomCodeInput.value = 'VIP' + Math.floor(100 + Math.random() * 900);
-      updateRoomSelection('private');
-    });
-    document.getElementById('copyRoomLinkBtn').addEventListener('click', async (e) => {
-      const code = roomCodeInput.value.trim().toUpperCase();
-      if (!code) return;
-      const url = `${window.location.origin}${window.location.pathname}?sala=${encodeURIComponent(code)}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        const orig = e.target.textContent;
-        e.target.textContent = 'Copiado!';
-        setTimeout(() => { e.target.textContent = orig; }, 1600);
-      } catch (_) {}
-    });
-    roomCodeInput.addEventListener('input', () => {
-      if (roomMode === 'private' && roomCodeInput.value.trim()) {
-        currentRoomId = 'private_' + roomCodeInput.value.trim().toUpperCase();
-        lobbyRoomBadge.textContent = '🔒 ' + roomCodeInput.value.trim().toUpperCase();
-        subscribeToRoom(currentRoomId);
-      }
-    });
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const sharedRoomCode = urlParams.get('sala');
-    if (sharedRoomCode) {
-      roomCodeInput.value = sharedRoomCode.toUpperCase().slice(0, 8);
-      updateRoomSelection('private');
-    }
-
-    function createRandomOrb(id, forceType = null) {
-      const margin = 140;
-      const x = margin + Math.random() * (ARENA_SIZE - margin * 2);
-      const y = margin + Math.random() * (ARENA_SIZE - margin * 2);
-      let type = forceType;
-
-      if (!type) {
-        const roll = Math.random();
-        if (roll < 0.028) type = 'magnet';
-        else if (roll < 0.052) type = 'vision';
-        else if (roll < 0.074) type = 'ghost';
-        else if (roll < 0.125) type = 'poison';
-        else type = 'food';
-      }
-
-      if (type === 'magnet') return { id, x, y, type: 'magnet', color: '#f59e0b', value: 4, radius: 13 };
-      if (type === 'vision') return { id, x, y, type: 'vision', color: '#06b6d4', value: 4, radius: 13 };
-      if (type === 'ghost') return { id, x, y, type: 'ghost', color: '#c084fc', value: 4, radius: 13 };
-      if (type === 'poison') return { id, x, y, type: 'poison', color: '#a855f7', value: -5, radius: 12 };
-
-      const color = ORB_PALETTE[Math.floor(Math.random() * ORB_PALETTE.length)];
-      return { id, x, y, type: 'food', color, value: 1, radius: 5.5 + Math.random() * 2.5 };
-    }
-
-    function generateInitialOrbs(count = 230) {
-      const list = [];
-      for (let i = 0; i < count; i++) {
-        list.push(createRandomOrb('orb_' + i));
-      }
-      return list;
-    }
-
-    function normalizeAngle(a) {
-      while (a > Math.PI) a -= Math.PI * 2;
-      while (a < -Math.PI) a += Math.PI * 2;
-      return a;
-    }
-
-    function lerpAngle(current, target, t) {
-      const diff = normalizeAngle(target - current);
-      return current + diff * t;
-    }
-
-    function subscribeToRoom(roomId) {
-      if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
-      if (unsubOrbs) { unsubOrbs(); unsubOrbs = null; }
-      remotePlayers.clear();
-
-      if (!currentUser) return;
-
-      const playersCol = collection(db, 'rooms', roomId, 'players');
-      unsubPlayers = onSnapshot(playersCol, (snapshot) => {
-        const now = Date.now();
-        const activeIds = new Set();
-
-        snapshot.forEach((docSnap) => {
-          if (docSnap.id === currentUser.uid) return;
-          const data = docSnap.data();
-
-          if (data.lastSeen && now - data.lastSeen < 14000 && data.alive) {
-            activeIds.add(docSnap.id);
-            const existing = remotePlayers.get(docSnap.id);
-            const incomingSegs = Array.isArray(data.segments) ? data.segments : [];
-
-            if (!existing) {
-              remotePlayers.set(docSnap.id, {
-                id: docSnap.id,
-                ...data,
-                targetX: data.x,
-                targetY: data.y,
-                targetAngle: data.angle || 0,
-                targetSegments: incomingSegs.map(s => ({ x: s.x, y: s.y })),
-                segments: incomingSegs.map(s => ({ x: s.x, y: s.y })),
-                lastPacketTime: performance.now()
-              });
-            } else {
-              existing.name = data.name;
-              existing.color = data.color;
-              existing.skin = data.skin;
-              existing.alive = data.alive;
-              existing.score = data.score;
-              existing.kills = data.kills;
-              existing.ghost = data.ghost;
-              existing.boosting = Boolean(data.boosting);
-              existing.lastSeen = data.lastSeen;
-
-              const jumpDist = Math.hypot(data.x - existing.x, data.y - existing.y);
-              if (jumpDist > 450) {
-                existing.x = data.x;
-                existing.y = data.y;
-                existing.angle = data.angle || 0;
-                existing.segments = incomingSegs.map(s => ({ x: s.x, y: s.y }));
-              }
-
-              existing.targetX = data.x;
-              existing.targetY = data.y;
-              existing.targetAngle = data.angle || 0;
-              existing.targetSegments = incomingSegs;
-              existing.lastPacketTime = performance.now();
-            }
-          }
-        });
-
-        for (const id of remotePlayers.keys()) {
-          if (!activeIds.has(id)) remotePlayers.delete(id);
-        }
-
-        const totalHumans = remotePlayers.size + (isPlaying ? 1 : 0);
-        const displayCount = Math.min(MAX_ROOM_PLAYERS, Math.max(1, totalHumans));
-        const countEl = document.getElementById('lobbyRoomCount');
-        if (countEl) countEl.textContent = `👥 ${displayCount}/${MAX_ROOM_PLAYERS} na sala`;
-        const onlineEl = document.getElementById('hudPlayersOnline');
-        if (onlineEl) onlineEl.textContent = `${displayCount}/${MAX_ROOM_PLAYERS}`;
-      });
-
-      const orbsDocRef = doc(db, 'rooms', roomId, 'state', 'orbs');
-      unsubOrbs = onSnapshot(orbsDocRef, async (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (Array.isArray(data.items) && data.items.length > 0) {
-            orbs = data.items;
-          }
-        } else {
-          orbs = generateInitialOrbs(230);
-          try {
-            await setDoc(orbsDocRef, { items: orbs, updatedAt: Date.now() });
-          } catch (_) {}
-        }
-      });
-    }
-
-    function updateRemotePlayersSmooth(dt) {
-      const now = performance.now();
-      const posBlend = 1 - Math.exp(-16 * dt);
-      const segBlend = 1 - Math.exp(-18 * dt);
-
-      remotePlayers.forEach((rp) => {
-        if (!rp.alive) return;
-        const packetAge = Math.min(0.22, (now - (rp.lastPacketTime || now)) / 1000);
-        const estSpeed = rp.boosting ? BOOST_SPEED : BASE_SPEED;
-        const predictedX = rp.targetX + Math.cos(rp.targetAngle) * estSpeed * packetAge * 0.65;
-        const predictedY = rp.targetY + Math.sin(rp.targetAngle) * estSpeed * packetAge * 0.65;
-
-        rp.x += (predictedX - rp.x) * posBlend;
-        rp.y += (predictedY - rp.y) * posBlend;
-        rp.angle = lerpAngle(rp.angle || 0, rp.targetAngle || 0, posBlend);
-
-        const targets = rp.targetSegments || [];
-        if (targets.length > 0) {
-          while (rp.segments.length < targets.length) {
-            const last = rp.segments[rp.segments.length - 1] || { x: rp.x, y: rp.y };
-            rp.segments.push({ x: last.x, y: last.y });
-          }
-          if (rp.segments.length > targets.length) rp.segments.length = targets.length;
-          rp.segments[0].x = rp.x;
-          rp.segments[0].y = rp.y;
-          for (let i = 1; i < rp.segments.length; i++) {
-            const curr = rp.segments[i];
-            const targ = targets[i];
-            curr.x += (targ.x - curr.x) * segBlend;
-            curr.y += (targ.y - curr.y) * segBlend;
-          }
-        }
-      });
-    }
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        currentUser = user;
-        isOnlineConnected = true;
-        setConnectionUI('online', 'Arena Pronta!', 'Conectado à sala.');
-        subscribeToRoom(currentRoomId);
-      }
-    });
-
-    signInAnonymously(auth).catch(() => {
-      isOnlineConnected = false;
-      orbs = generateInitialOrbs(230);
-      setConnectionUI('warn', 'Modo Local Ativo!', 'Jogue com bots.');
-    });
-
-    const BOT_NAMES = ['Víbora', 'Relâmpago', 'Sombra', 'CobraRei', 'Titan', 'Naja', 'Fúria', 'Estrela', 'Vortex', 'Zika'];
-
-    function createSnakeEntity(id, name, color, skin, isBot = false) {
-      const margin = 350;
-      const x = margin + Math.random() * (ARENA_SIZE - margin * 2);
-      const y = margin + Math.random() * (ARENA_SIZE - margin * 2);
-      const angle = Math.random() * Math.PI * 2;
-      const segments = [];
-      for (let i = 0; i < INITIAL_LENGTH; i++) {
-        segments.push({
-          x: x - Math.cos(angle) * i * SEGMENT_SPACING,
-          y: y - Math.sin(angle) * i * SEGMENT_SPACING
-        });
-      }
-      return { id, name, color, skin, isBot, alive: true, x, y, angle, targetAngle: angle, score: 10, kills: 0, segments, powers: { magnet: 0, vision: 0, ghost: 0 }, aiTimer: 0 };
-    }
-
-    function syncBotsPopulation() {
-      const activeHumans = (me && me.alive ? 1 : 0) + remotePlayers.size;
-      const neededBots = Math.max(0, TARGET_TOTAL_SNAKES - activeHumans);
-      while (bots.length < neededBots) {
-        const idx = Math.floor(Math.random() * BOT_NAMES.length);
-        const colors = ['#3b82f6', '#ef4444', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#10b981'];
-        const skins = ['solid', 'striped', 'neon', 'rainbow', 'brasil'];
-        bots.push(createSnakeEntity('bot_' + Math.random().toString(36).slice(2, 8), BOT_NAMES[idx], colors[Math.floor(Math.random() * colors.length)], skins[Math.floor(Math.random() * skins.length)], true));
-      }
-      if (bots.length > neededBots) bots.length = neededBots;
-    }
-
-    function startMatch() {
-      if (roomMode === 'private') {
-        const cleanCode = roomCodeInput.value.trim().toUpperCase();
-        if (cleanCode) {
-          currentRoomId = 'private_' + cleanCode;
-          subscribeToRoom(currentRoomId);
-        }
-      }
-
-      const rawName = document.getElementById('nicknameInput').value.trim();
-      const nickname = rawName || ('Cobra' + Math.floor(10 + Math.random() * 89));
-
-      me = createSnakeEntity(currentUser ? currentUser.uid : 'local_player', nickname, selectedColor, selectedSkin, false);
-      turboEnergy = 100;
-      turboOverheated = false;
-      isBoosting = false;
-
-      if (orbs.length === 0) orbs = generateInitialOrbs(230);
-      syncBotsPopulation();
-
-      const hud = document.getElementById('hudOverlay');
-      const go = document.getElementById('gameOverOverlay');
-      const lobby = document.getElementById('lobbyOverlay');
-
-      if (lobby) { lobby.classList.add('hidden'); lobby.style.display = 'none'; }
-      if (go) { go.classList.add('hidden'); go.style.display = 'none'; }
-      if (hud) { hud.classList.remove('hidden'); hud.style.display = 'flex'; }
-
-      document.getElementById('hudRoomBadge').textContent = roomMode === 'public' ? '🌐 Pública' : '🔒 ' + currentRoomId.replace('private_', '');
-      isPlaying = true;
-      syncPlayerToCloud(true, false);
-    }
-
-    startGameBtn.addEventListener('click', startMatch);
-    document.getElementById('respawnBtn').addEventListener('click', startMatch);
-
-    // BOTÃO SAIR CORRIGIDO: Força exibição do lobby com flex centralizado
-    document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
-      isPlaying = false;
-      if (me) me.alive = false;
-      me = null;
-
-      if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
-      if (unsubOrbs) { unsubOrbs(); unsubOrbs = null; }
-      await removePlayerFromCloud();
-
-      const hud = document.getElementById('hudOverlay');
-      const go = document.getElementById('gameOverOverlay');
-      const lobby = document.getElementById('lobbyOverlay');
-
-      if (hud) { hud.classList.add('hidden'); hud.style.display = 'none'; }
-      if (go) { go.classList.add('hidden'); go.style.display = 'none'; }
-      if (lobby) {
-        lobby.classList.remove('hidden');
-        lobby.style.display = 'flex';
-        lobby.style.alignItems = 'center';
-        lobby.style.justifyContent = 'center';
-      }
-
-      remotePlayers.clear();
-      bots = [];
-    });
-
-    document.getElementById('toggleGfxBtn').addEventListener('click', (e) => {
-      lowGraphics = !lowGraphics;
-      e.target.textContent = lowGraphics ? '⚡ Leve' : '✨ HD';
-    });
-
-    async function syncPlayerToCloud(force = false, activeBoost = false) {
-      if (!isOnlineConnected || !currentUser || !me) return;
-      const now = Date.now();
-      if (!force && now - lastNetSyncTime < 85) return;
-      lastNetSyncTime = now;
-
-      const compactSegments = [];
-      for (let i = 0; i < me.segments.length; i += (me.segments.length > 55 ? 2 : 1)) {
-        compactSegments.push({ x: Math.round(me.segments[i].x), y: Math.round(me.segments[i].y) });
-      }
-
-      try {
-        await setDoc(doc(db, 'rooms', currentRoomId, 'players', currentUser.uid), {
-          name: me.name, color: me.color, skin: me.skin, alive: me.alive,
-          x: Math.round(me.x), y: Math.round(me.y), angle: Number(me.angle.toFixed(2)),
-          boosting: activeBoost, score: Math.round(me.score), kills: me.kills,
-          ghost: me.powers.ghost > 0, segments: compactSegments, lastSeen: now
-        });
-      } catch (_) {}
-    }
-
-    async function removePlayerFromCloud() {
-      if (!isOnlineConnected || !currentUser) return;
-      try {
-        await deleteDoc(doc(db, 'rooms', currentRoomId, 'players', currentUser.uid));
-      } catch (_) {}
-    }
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -739,145 +142,85 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    window.addEventListener('mousemove', (e) => { mouseScreenX = e.clientX; mouseScreenY = e.clientY; });
-    window.addEventListener('mousedown', (e) => { if (e.button === 0 && isPlaying) isBoosting = true; });
-    window.addEventListener('mouseup', () => { isBoosting = false; });
-    window.addEventListener('keydown', (e) => { if (e.code === 'Space' && isPlaying) isBoosting = true; });
-    window.addEventListener('keyup', (e) => { if (e.code === 'Space') isBoosting = false; });
-
-    canvas.addEventListener('touchstart', (e) => {
-      if (!isPlaying) return;
-      const t = e.touches[0];
-      mouseScreenX = t.clientX; mouseScreenY = t.clientY;
-      if (performance.now() - lastTapTime < 280) isBoosting = true;
-      lastTapTime = performance.now();
-    }, { passive: true });
-
-    canvas.addEventListener('touchmove', (e) => {
-      if (!isPlaying) return;
-      mouseScreenX = e.touches[0].clientX; mouseScreenY = e.touches[0].clientY;
-    }, { passive: true });
-
-    canvas.addEventListener('touchend', () => { isBoosting = false; });
-
-    function growSnake(snake, amount) {
-      const tail = snake.segments[snake.segments.length - 1];
-      for (let i = 0; i < amount; i++) snake.segments.push({ x: tail.x, y: tail.y });
+    // Gerar orbes iniciais
+    for(let i=0; i<150; i++) {
+      orbs.push({
+        x: Math.random() * 3200,
+        y: Math.random() * 3200,
+        color: '#10b981',
+        radius: 6
+      });
     }
 
-    function eliminateMe(reason) {
-      if (!me || !me.alive) return;
-      me.alive = false;
+    startGameBtn.addEventListener('click', () => {
+      const name = nicknameInput.value.trim() || 'Jogador';
+      me.name = name;
+      me.x = 1600;
+      me.y = 1600;
+      me.score = 10;
+      me.segments = [];
+      for(let i=0; i<15; i++) me.segments.push({x: 1600 - i*10, y: 1600});
+
+      lobbyOverlay.classList.add('hidden');
+      lobbyOverlay.style.display = 'none';
+      hudOverlay.classList.remove('hidden');
+      hudOverlay.style.display = 'flex';
+      isPlaying = true;
+    });
+
+    leaveRoomBtn.addEventListener('click', () => {
       isPlaying = false;
-      playTone(150, 0.35, 'sawtooth', 0.09);
-      syncPlayerToCloud(true, false);
-
-      document.getElementById('deathReasonText').textContent = reason;
-      document.getElementById('finalScoreText').textContent = Math.round(me.score);
-      document.getElementById('finalKillsText').textContent = me.kills;
+      hudOverlay.classList.add('hidden');
+      hudOverlay.style.display = 'none';
       
-      const hud = document.getElementById('hudOverlay');
-      const go = document.getElementById('gameOverOverlay');
-      if (hud) { hud.classList.add('hidden'); hud.style.display = 'none'; }
-      if (go) { go.classList.remove('hidden'); go.style.display = 'flex'; }
-    }
+      // Força a exibição do lobby perfeitamente centralizado
+      lobbyOverlay.classList.remove('hidden');
+      lobbyOverlay.style.display = 'flex';
+      lobbyOverlay.style.alignItems = 'center';
+      lobbyOverlay.style.justifyContent = 'center';
+    });
 
-    function updateSnakeMovement(snake, dt, boosting) {
-      if (!snake.alive) return;
-      let speed = boosting ? BOOST_SPEED : BASE_SPEED;
-      const diff = normalizeAngle(snake.targetAngle - snake.angle);
-      snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), 5.4 * dt);
-      snake.x += Math.cos(snake.angle) * speed * dt;
-      snake.y += Math.sin(snake.angle) * speed * dt;
+    window.addEventListener('mousemove', (e) => {
+      if(!isPlaying) return;
+      const angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
+      me.x += Math.cos(angle) * 3;
+      me.y += Math.sin(angle) * 3;
+    });
 
-      snake.segments[0].x = snake.x;
-      snake.segments[0].y = snake.y;
-      for (let i = 1; i < snake.segments.length; i++) {
-        const prev = snake.segments[i - 1], curr = snake.segments[i];
-        const dx = prev.x - curr.x, dy = prev.y - curr.y, dist = Math.hypot(dx, dy);
-        if (dist > SEGMENT_SPACING) {
-          const a = Math.atan2(dy, dx);
-          curr.x = prev.x - Math.cos(a) * SEGMENT_SPACING;
-          curr.y = prev.y - Math.sin(a) * SEGMENT_SPACING;
-        }
-      }
-
-      for (let i = orbs.length - 1; i >= 0; i--) {
-        const orb = orbs[i];
-        if (Math.hypot(snake.x - orb.x, snake.y - orb.y) < 22 + orb.radius) {
-          snake.score += orb.value;
-          if (Math.floor(snake.score / 5) > snake.segments.length - INITIAL_LENGTH) growSnake(snake, 1);
-          orbs[i] = createRandomOrb(orb.id);
-        }
-      }
-    }
-
-    function updateBots(dt) {
-      syncBotsPopulation();
-      for (const bot of bots) {
-        bot.aiTimer -= dt;
-        if (bot.aiTimer <= 0) {
-          bot.aiTimer = 0.3 + Math.random() * 0.4;
-          bot.targetAngle += (Math.random() - 0.5) * 1.5;
-        }
-        updateSnakeMovement(bot, dt, false);
-      }
-    }
-
-    function gameLoop(now) {
-      const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
-      lastFrameTime = now;
-
-      if (!isPlaying) {
-        ctx.fillStyle = '#060a12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        requestAnimationFrame(gameLoop);
-        return;
-      }
-
-      updateRemotePlayersSmooth(dt);
-
-      if (isPlaying && me && me.alive) {
-        me.targetAngle = Math.atan2(mouseScreenY - canvas.height / 2, mouseScreenX - canvas.width / 2);
-        const canBoost = isBoosting && !turboOverheated && turboEnergy > 0 && me.score > 11;
-        updateSnakeMovement(me, dt, canBoost);
-        updateBots(dt);
-        syncPlayerToCloud(false, canBoost);
-      } else {
-        updateBots(dt);
-      }
-
+    function gameLoop() {
       ctx.fillStyle = '#060a12';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      const focusX = (me && me.alive) ? me.x : ARENA_SIZE / 2;
-      const focusY = (me && me.alive) ? me.y : ARENA_SIZE / 2;
-      ctx.translate(-focusX, -focusY);
+      if (isPlaying) {
+        ctx.save();
+        ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
 
-      // Desenhar mapa básico
-      ctx.strokeStyle = '#11192c';
-      ctx.lineWidth = 1;
-      for (let x = 0; x <= ARENA_SIZE; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ARENA_SIZE); ctx.stroke(); }
-      for (let y = 0; y <= ARENA_SIZE; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(ARENA_SIZE, y); ctx.stroke(); }
+        // Desenhar grade
+        ctx.strokeStyle = '#11192c';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= 3200; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 3200); ctx.stroke(); }
+        for (let y = 0; y <= 3200; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(3200, y); ctx.stroke(); }
 
-      for (const o of orbs) {
-        ctx.beginPath(); ctx.arc(o.x, o.y, o.radius, 0, Math.PI * 2);
-        ctx.fillStyle = o.color; ctx.fill();
+        // Desenhar orbes
+        for (let o of orbs) {
+          ctx.beginPath();
+          ctx.arc(o.x, o.y, o.radius, 0, Math.PI*2);
+          ctx.fillStyle = o.color;
+          ctx.fill();
+        }
+
+        // Desenhar jogador
+        ctx.beginPath();
+        ctx.arc(me.x, me.y, 12, 0, Math.PI*2);
+        ctx.fillStyle = '#10b981';
+        ctx.fill();
+
+        ctx.restore();
+
+        document.getElementById('hudScore').textContent = Math.round(me.score);
+        document.getElementById('hudKills').textContent = me.kills;
       }
 
-      for (const b of bots) if (b.alive) {
-        ctx.beginPath(); ctx.arc(b.x, b.y, 12, 0, Math.PI * 2);
-        ctx.fillStyle = b.color; ctx.fill();
-      }
-
-      if (me && me.alive) {
-        ctx.beginPath(); ctx.arc(me.x, me.y, 12, 0, Math.PI * 2);
-        ctx.fillStyle = me.color; ctx.fill();
-      }
-
-      ctx.restore();
       requestAnimationFrame(gameLoop);
     }
 
