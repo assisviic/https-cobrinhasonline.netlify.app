@@ -896,14 +896,13 @@
     document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
       isPlaying = false;
       if (me) me.alive = false;
+      me = null;
 
-      // Limpa ouvintes para evitar vazamento de memória e travamentos
       if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
       if (unsubOrbs) { unsubOrbs(); unsubOrbs = null; }
 
       await removePlayerFromCloud();
 
-      // Força ocultação do HUD e exibição absoluta do Lobby
       const hud = document.getElementById('hudOverlay');
       const go = document.getElementById('gameOverOverlay');
       const lobby = document.getElementById('lobbyOverlay');
@@ -922,7 +921,7 @@
       }
 
       remotePlayers.clear();
-      me = null;
+      bots = [];
     });
 
     document.getElementById('toggleGfxBtn').addEventListener('click', (e) => {
@@ -1541,6 +1540,13 @@
     function gameLoop(now) {
       const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
+
+      if (!isPlaying) {
+        ctx.fillStyle = '#060a12';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(gameLoop);
+        return;
+      }
 
       updateRemotePlayersSmooth(dt);
 
