@@ -58,7 +58,7 @@
     </div>
   </div>
 
-  <!-- TELA DE GAME OVER (Agora com style display flex dinâmico) -->
+  <!-- TELA DE GAME OVER -->
   <div id="gameOverOverlay" style="display: none;" class="fixed inset-0 z-40 items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
     <div class="w-full max-w-[360px] rounded-3xl bg-[#0e1526] border border-rose-500/30 p-6 text-center shadow-2xl text-slate-100">
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-3xl mb-3">💥</div>
@@ -147,6 +147,7 @@
     let isBoosting = false;
     let turboEnergy = 100;
     let turboOverheated = false;
+    let spawnProtection = 0; // Proteção contra morte instantânea no nascimento
     let mouseScreenX = window.innerWidth / 2;
     let mouseScreenY = window.innerHeight / 2;
 
@@ -197,9 +198,9 @@
     window.addEventListener('keyup', (e) => { if (e.code === 'Space') isBoosting = false; });
 
     function createSnakeEntity(name, color, skin, isBot = false) {
-      // Spawn seguro bem longe das paredes da arena (entre 800 e 2400)
-      const x = 800 + Math.random() * (ARENA_SIZE - 1600);
-      const y = 800 + Math.random() * (ARENA_SIZE - 1600);
+      // Spawn bem no centro seguro da arena
+      const x = ARENA_SIZE / 2 + (Math.random() - 0.5) * 400;
+      const y = ARENA_SIZE / 2 + (Math.random() - 0.5) * 400;
       const angle = Math.random() * Math.PI * 2;
       const segments = [];
       for (let i = 0; i < INITIAL_LENGTH; i++) {
@@ -228,6 +229,7 @@
       turboEnergy = 100;
       turboOverheated = false;
       isBoosting = false;
+      spawnProtection = 1.5; // 1.5 segundos de imunidade inicial
       bots = [];
       syncBots();
 
@@ -245,178 +247,3 @@
       if (me) me.alive = false;
       me = null;
       bots = [];
-
-      hudOverlay.style.display = 'none';
-      gameOverOverlay.style.display = 'none';
-      lobbyOverlay.style.display = 'flex';
-    });
-
-    function eliminateMe(reason) {
-      if (!me || !me.alive) return;
-      me.alive = false;
-      isPlaying = false;
-      document.getElementById('deathReasonText').textContent = reason;
-      document.getElementById('finalScoreText').textContent = Math.round(me.score);
-      document.getElementById('finalKillsText').textContent = me.kills;
-      hudOverlay.style.display = 'none';
-      gameOverOverlay.style.display = 'flex'; // Exibe o modal de Game Over corretamente com flex
-    }
-
-    function getSegmentColor(snake, index) {
-      if (snake.skin === 'striped') return index % 4 < 2 ? snake.color : '#f8fafc';
-      if (snake.skin === 'neon') return index % 2 === 0 ? snake.color : '#7af5d8';
-      if (snake.skin === 'brasil') {
-        const mod = index % 6;
-        if (mod < 2) return '#10b981';
-        if (mod < 4) return '#facc15';
-        return '#2563eb';
-      }
-      return snake.color;
-    }
-
-    function drawSnake(snake) {
-      const segs = snake.segments;
-      if (!segs || segs.length === 0) return;
-      for (let i = segs.length - 1; i >= 0; i--) {
-        const seg = segs[i];
-        ctx.beginPath();
-        ctx.arc(seg.x, seg.y, 12 * (1 - (i / segs.length) * 0.3), 0, Math.PI * 2);
-        ctx.fillStyle = getSegmentColor(snake, i);
-        ctx.fill();
-      }
-      const head = segs[0];
-      ctx.font = 'bold 12px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#7af5d8';
-      ctx.fillText(snake.name, head.x, head.y - 20);
-    }
-
-    function updateSnake(snake, dt, speed) {
-      const diff = snake.targetAngle - snake.angle;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), 5.4 * dt);
-
-      snake.x += Math.cos(snake.angle) * speed * dt;
-      snake.y += Math.sin(snake.angle) * speed * dt;
-
-      if (snake.x < 30 || snake.x > ARENA_SIZE - 30 || snake.y < 30 || snake.y > ARENA_SIZE - 30) {
-        if (!snake.isBot) {
-          eliminateMe('Você colidiu com a parede!');
-          return;
-        } else {
-          snake.targetAngle += Math.PI;
-        }
-      }
-
-      snake.segments[0].x = snake.x;
-      snake.segments[0].y = snake.y;
-      for (let i = 1; i < snake.segments.length; i++) {
-        const prev = snake.segments[i - 1], curr = snake.segments[i];
-        const dx = prev.x - curr.x, dy = prev.y - curr.y, dist = Math.hypot(dx, dy);
-        if (dist > SEGMENT_SPACING) {
-          const a = Math.atan2(dy, dx);
-          curr.x = prev.x - Math.cos(a) * SEGMENT_SPACING;
-          curr.y = prev.y - Math.sin(a) * SEGMENT_SPACING;
-        }
-      }
-
-      for (let i = orbs.length - 1; i >= 0; i--) {
-        const o = orbs[i];
-        if (Math.hypot(snake.x - o.x, snake.y - o.y) < 20) {
-          snake.score += 1;
-          if (snake.score % 5 === 0) {
-            const tail = snake.segments[snake.segments.length - 1];
-            snake.segments.push({ x: tail.x, y: tail.y });
-          }
-          orbs[i] = {
-            x: 200 + Math.random() * (ARENA_SIZE - 400),
-            y: 200 + Math.random() * (ARENA_SIZE - 400),
-            color: ORB_PALETTE[Math.floor(Math.random() * ORB_PALETTE.length)],
-            value: 1,
-            radius: 6
-          };
-        }
-      }
-    }
-
-    function gameLoop(now) {
-      const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
-      lastFrameTime = now;
-
-      ctx.fillStyle = '#060a12';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      if (isPlaying && me && me.alive) {
-        const canBoost = isBoosting && !turboOverheated && turboEnergy > 10 && me.score > 12;
-        if (canBoost) {
-          turboEnergy = Math.max(0, turboEnergy - dt * 38);
-          if (turboEnergy === 0) turboOverheated = true;
-        } else {
-          turboEnergy = Math.min(100, turboEnergy + dt * 22);
-          if (turboEnergy > 35) turboOverheated = false;
-        }
-
-        const currentSpeed = canBoost ? BOOST_SPEED : BASE_SPEED;
-        me.targetAngle = Math.atan2(mouseScreenY - canvas.height / 2, mouseScreenX - canvas.width / 2);
-        updateSnake(me, dt, currentSpeed);
-
-        syncBots();
-        for (const bot of bots) {
-          bot.aiTimer -= dt;
-          if (bot.aiTimer <= 0) {
-            bot.aiTimer = 0.5 + Math.random() * 0.8;
-            bot.targetAngle += (Math.random() - 0.5) * 2.0;
-          }
-          updateSnake(bot, dt, BASE_SPEED);
-
-          for (const seg of bot.segments) {
-            if (Math.hypot(me.x - seg.x, me.y - seg.y) < 14) {
-              eliminateMe('Você colidiu com a cobra ' + bot.name + '!');
-              break;
-            }
-          }
-        }
-
-        document.getElementById('hudScore').textContent = Math.round(me.score);
-        document.getElementById('turboPct').textContent = Math.round(turboEnergy) + '%';
-        document.getElementById('turboBar').style.width = turboEnergy + '%';
-
-        // Leaderboard
-        const allSnakes = [me, ...bots.filter(b => b.alive)].sort((a, b) => b.score - a.score);
-        const listEl = document.getElementById('leaderboardList');
-        listEl.innerHTML = allSnakes.slice(0, 5).map((s, idx) => `
-          <div class="flex justify-between items-center py-0.5 ${s === me ? 'font-black text-emerald-400' : 'text-slate-300'}">
-            <span>${idx + 1}. ${s.name}</span>
-            <span>${Math.round(s.score)}</span>
-          </div>
-        `).join('');
-
-        ctx.save();
-        ctx.translate(canvas.width / 2 - me.x, canvas.height / 2 - me.y);
-
-        // Grade
-        ctx.strokeStyle = '#11192c';
-        ctx.lineWidth = 1;
-        for (let x = 0; x <= ARENA_SIZE; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ARENA_SIZE); ctx.stroke(); }
-        for (let y = 0; y <= ARENA_SIZE; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(ARENA_SIZE, y); ctx.stroke(); }
-
-        // Orbes
-        for (const o of orbs) {
-          ctx.beginPath(); ctx.arc(o.x, o.y, o.radius, 0, Math.PI * 2);
-          ctx.fillStyle = o.color; ctx.fill();
-        }
-
-        for (const bot of bots) if (bot.alive) drawSnake(bot);
-        if (me && me.alive) drawSnake(me);
-
-        ctx.restore();
-      }
-
-      requestAnimationFrame(gameLoop);
-    }
-
-    requestAnimationFrame(gameLoop);
-  </script>
-</body>
-</html>
