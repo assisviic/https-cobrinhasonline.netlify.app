@@ -1,38 +1,66 @@
-<!-- ... existing code ... -->
-    startGameBtn.addEventListener('click', startMatch);
-    document.getElementById('respawnBtn').addEventListener('click', startMatch);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>COBRINHAS - Arena Multiplayer Online</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #060a12; font-family: 'Inter', system-ui, sans-serif; }
+    #gameCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    #lobbyOverlay { touch-action: pan-y; }
+    #lobbyOverlay input { user-select: text; -webkit-user-select: text; }
+  </style>
+</head>
+<body class="bg-[#060a12] text-slate-100">
 
-    // BOTÃO SAIR CORRIGIDO: Força a exibição do lobby com flex e reseta o estado da partida
-    document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
-      isPlaying = false;
-      if (me) me.alive = false;
-      me = null;
+  <canvas id="gameCanvas"></canvas>
 
-      if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
-      if (unsubOrbs) { unsubOrbs(); unsubOrbs = null; }
+  <!-- HUD DO JOGO -->
+  <div id="hudOverlay" class="hidden fixed inset-0 pointer-events-none z-20 p-4 flex flex-col justify-between">
+    <div class="flex items-start justify-between">
+      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3">
+        <div class="text-xs font-bold text-slate-400">Pontos</div>
+        <div id="hudScore" class="text-xl font-black text-emerald-400">10</div>
+        <button id="leaveRoomBtn" class="mt-2 px-3 py-1 rounded-xl bg-rose-950 hover:bg-rose-800 text-xs font-bold text-rose-200 pointer-events-auto">Sair</button>
+      </div>
+    </div>
+  </div>
 
-      await removePlayerFromCloud();
+  <!-- TELA INICIAL / LOBBY CENTRALIZADO -->
+  <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-[#070b14]/90">
+    <div class="w-full max-w-[390px] rounded-[26px] bg-[#0e1526] border border-emerald-500/20 p-6 shadow-2xl text-center">
+      <h1 class="text-3xl font-black text-[#7af5d8] mb-2">COBRINHAS</h1>
+      <input id="nicknameInput" type="text" maxlength="16" placeholder="Seu Apelido" class="w-full px-3.5 py-3 rounded-xl bg-[#101829] border border-slate-700 text-white mb-4 text-center focus:outline-none focus:border-emerald-400" />
+      <button id="startGameBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wide shadow-lg">
+        ENTRAR NA SALA
+      </button>
+    </div>
+  </div>
 
-      const hud = document.getElementById('hudOverlay');
-      const go = document.getElementById('gameOverOverlay');
-      const lobby = document.getElementById('lobbyOverlay');
+  <script>
+    const lobbyOverlay = document.getElementById('lobbyOverlay');
+    const hudOverlay = document.getElementById('hudOverlay');
+    const startGameBtn = document.getElementById('startGameBtn');
+    const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-      if (hud) {
-        hud.classList.add('hidden');
-        hud.style.display = 'none';
-      }
-      if (go) {
-        go.classList.add('hidden');
-        go.style.display = 'none';
-      }
-      if (lobby) {
-        lobby.classList.remove('hidden');
-        lobby.style.display = 'flex';
-      }
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-      remotePlayers.clear();
-      bots = [];
+    startGameBtn.addEventListener('click', () => {
+      lobbyOverlay.style.display = 'none';
+      hudOverlay.style.display = 'flex';
     });
 
-    document.getElementById('toggleGfxBtn').addEventListener('click', (e) => {
-<!-- ... existing code ... -->
+    leaveRoomBtn.addEventListener('click', () => {
+      hudOverlay.style.display = 'none';
+      lobbyOverlay.style.display = 'flex';
+      lobbyOverlay.style.alignItems = 'center';
+      lobbyOverlay.style.justifyContent = 'center';
+    });
+  </script>
+</body>
+</html>
