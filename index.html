@@ -60,7 +60,7 @@
     <!-- Linha Topo: Missão / Evento + Ranking + Controles -->
     <div class="flex items-start justify-between gap-1.5 sm:gap-2">
       <!-- Esquerda: Pontuação, Habilidades Ativas e Missão Relâmpago -->
-      <div class="flex flex-col gap-1.5 sm:gap-2 max-w-[156px] sm:max-w-[270px]">
+      <div class="flex flex-col gap-1.5 sm:gap-2 max-w-[164px] sm:max-w-[270px]">
         <!-- Status e Pontos -->
         <div class="bg-slate-950/60 sm:bg-slate-950/80 border border-slate-800/70 sm:border-slate-800/90 rounded-xl sm:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 backdrop-blur-[2px] sm:backdrop-blur-sm shadow-lg">
           <div class="flex items-center justify-between gap-2 sm:gap-3">
@@ -78,6 +78,12 @@
           <div class="mt-1 sm:mt-1.5 flex items-center justify-between text-[8px] sm:text-[10px] font-bold text-slate-400 border-t border-slate-800/80 pt-1">
             <span>Agilidade</span>
             <span id="hudSpeedPct" class="text-cyan-300">100%</span>
+          </div>
+
+          <!-- Indicador de Voltas de Pescoço (Limite de 10 voltas) -->
+          <div class="mt-1 flex items-center justify-between text-[8px] sm:text-[10px] font-bold text-slate-400 border-t border-slate-800/80 pt-1">
+            <span>Voltas Pescoço</span>
+            <span id="hudNeckTurns" class="text-emerald-300">0.0 / 10</span>
           </div>
 
           <!-- Power-ups Ativos -->
@@ -336,6 +342,8 @@
     const MIN_SPEED_FACTOR = 0.58;
     const SEGMENT_SPACING = 6.5;
     const INITIAL_LENGTH = 18;
+    const MAX_NECK_TURNS = 10;
+    const FULL_CIRCLE_RAD = Math.PI * 2;
     const ORB_PALETTE = ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf'];
 
     // Controle rígido de spawn (2 minutos = 120.000 ms)
@@ -799,6 +807,9 @@
         kills: 0,
         segments,
         powers: { magnet: 0, vision: 0, ghost: 0 },
+        cumulativeTurnAngle: 0,
+        neckTurns: 0,
+        neckLocked: false,
         aiTimer: 0,
         huntCooldown: 4 + Math.random() * 6,
         huntTimer: 0,
@@ -1104,9 +1115,50 @@
       if (inSwamp) speed *= 0.84;
 
       const baseTurn = (snake.isBot ? 5.0 : 5.4) * (0.75 + 0.25 * sizeFactor);
-      const turnRate = inIce ? baseTurn * 0.62 : baseTurn;
+      let turnRate = inIce ? baseTurn * 0.62 : baseTurn;
+
+      // ==================== CONTROLE DE VOLTAS DE PESCOÇO (LIMITE 10) ====================
+      const maxTurnAngle = MAX_NECK_TURNS * FULL_CIRCLE_RAD;
       const diff = normalizeAngle(snake.targetAngle - snake.angle);
-      snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), turnRate * dt);
+
+      // Se atingiu 10 voltas no mesmo sentido, limita a curvatura fechada para o corpo acompanhar em frente
+      if (snake.neckLocked) {
+        turnRate *= 0.14;
+      } else if (snake.neckTurns >= 7.5 && Math.sign(diff) === Math.sign(snake.cumulativeTurnAngle)) {
+        // Vai endurecendo o pescoço gradualmente entre 7.5 e 10 voltas
+        const stiffness = 1 - ((snake.neckTurns - 7.5) / 2.5) * 0.75;
+        turnRate *= Math.max(0.2, stiffness);
+      }
+
+      const appliedStep = Math.sign(diff) * Math.min(Math.abs(diff), turnRate * dt);
+      snake.angle = normalizeAngle(snake.angle + appliedStep);
+
+      const angularRate = Math.abs(appliedStep) / Math.max(0.001, dt);
+      const isTightCircling = angularRate > 2.3;
+
+      if (isTightCircling && !snake.neckLocked) {
+        // Se inverter o sentido do giro, desenrola mais rápido
+        if (Math.sign(appliedStep) !== Math.sign(snake.cumulativeTurnAngle) && Math.abs(snake.cumulativeTurnAngle) > 0.1) {
+          snake.cumulativeTurnAngle += appliedStep * 1.8;
+        } else {
+          snake.cumulativeTurnAngle += appliedStep;
+        }
+      } else {
+        // Ao seguir reto ou abrir o raio da curva, desenrola as voltas acumuladas conforme avança
+        const unwindRate = snake.neckLocked ? FULL_CIRCLE_RAD * 1.65 : FULL_CIRCLE_RAD * 1.15;
+        const unwind = Math.min(Math.abs(snake.cumulativeTurnAngle), unwindRate * dt);
+        snake.cumulativeTurnAngle -= Math.sign(snake.cumulativeTurnAngle) * unwind;
+      }
+
+      if (Math.abs(snake.cumulativeTurnAngle) >= maxTurnAngle) {
+        snake.cumulativeTurnAngle = Math.sign(snake.cumulativeTurnAngle) * maxTurnAngle;
+        snake.neckLocked = true;
+      } else if (snake.neckLocked && Math.abs(snake.cumulativeTurnAngle) <= FULL_CIRCLE_RAD * 6.5) {
+        // Só destrava giro fechado depois que o corpo acompanhou e desenrolou para <= 6.5 voltas
+        snake.neckLocked = false;
+      }
+
+      snake.neckTurns = Math.min(MAX_NECK_TURNS, Math.abs(snake.cumulativeTurnAngle) / FULL_CIRCLE_RAD);
 
       snake.x += Math.cos(snake.angle) * speed * dt;
       snake.y += Math.sin(snake.angle) * speed * dt;
@@ -1117,6 +1169,7 @@
       if (snake.y < borderMargin) { snake.y = borderMargin; snake.angle = normalizeAngle(Math.PI / 2); }
       if (snake.y > ARENA_SIZE - borderMargin) { snake.y = ARENA_SIZE - borderMargin; snake.angle = normalizeAngle(-Math.PI / 2); }
 
+      // Atualiza segmentos para que o corpo acompanhe continuamente o deslocamento da cabeça
       snake.segments[0].x = snake.x;
       snake.segments[0].y = snake.y;
       for (let i = 1; i < snake.segments.length; i++) {
@@ -1215,7 +1268,6 @@
           bot.huntTimer -= dt;
           if (bot.huntTimer <= 0) {
             bot.huntTargetId = null;
-            // Após um bote rápido, entra em pausa longa antes de tentar atacar de novo
             bot.huntCooldown = 10 + Math.random() * 6;
           }
         }
@@ -1264,7 +1316,7 @@
           }
         }
 
-        // 2. Decisão: coleta principal + botes oportunistas ocasionais (sem perseguir o tempo todo)
+        // 2. Decisão: coleta principal + botes oportunistas ocasionais
         if (bot.aiTimer <= 0) {
           bot.aiTimer = 0.28 + Math.random() * 0.24;
 
@@ -1279,8 +1331,7 @@
             }
           }
 
-          // Só avalia um bote curto se estiver fora do cooldown, tiver bom porte (>= 24 pts) e encontrar alguém bem perto (< 190px)
-          if (!activeVictim && bot.huntCooldown <= 0 && bot.score >= 24 && dangerCount === 0) {
+          if (!activeVictim && bot.huntCooldown <= 0 && bot.score >= 24 && dangerCount === 0 && !bot.neckLocked) {
             let nearbyVictim = null;
             let nearbyDist = 190;
             for (const other of allSnakes) {
@@ -1295,10 +1346,9 @@
             if (nearbyVictim) {
               if (Math.random() < 0.30) {
                 bot.huntTargetId = nearbyVictim.id;
-                bot.huntTimer = 2.2; // Bote curto de 2.2 segundos
+                bot.huntTimer = 2.2;
                 activeVictim = nearbyVictim;
               } else {
-                // Deixa passar desta vez e aguarda alguns segundos antes de reavaliar
                 bot.huntCooldown = 6 + Math.random() * 5;
               }
             }
@@ -1338,8 +1388,11 @@
           }
         }
 
-        if (dangerCount > 0) {
+        // Se o bot estiver cercado e próximo do limite de voltas, direciona para saída em frente
+        if (dangerCount > 0 && !bot.neckLocked) {
           bot.targetAngle = Math.atan2(dangerY, dangerX);
+        } else if (bot.neckLocked) {
+          bot.targetAngle = bot.angle;
         }
 
         updateSnakeMovement(bot, dt);
@@ -1608,6 +1661,17 @@
 
       const speedPct = Math.round(getSizeSpeedFactor(me) * 100);
       document.getElementById('hudSpeedPct').textContent = speedPct + '%';
+
+      const neckEl = document.getElementById('hudNeckTurns');
+      const turnsVal = (me.neckTurns || 0).toFixed(1);
+      neckEl.textContent = `${turnsVal} / ${MAX_NECK_TURNS}`;
+      if (me.neckLocked || me.neckTurns >= 9) {
+        neckEl.className = 'text-rose-400 font-black';
+      } else if (me.neckTurns >= 6) {
+        neckEl.className = 'text-amber-300';
+      } else {
+        neckEl.className = 'text-emerald-300';
+      }
 
       const powersDiv = document.getElementById('activePowersHud');
       let badges = '';
