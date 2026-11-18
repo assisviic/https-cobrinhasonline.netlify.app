@@ -343,6 +343,11 @@
     const INITIAL_LENGTH = 18;
     const ORB_PALETTE = ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf'];
 
+    // Controle rígido de spawn (2 minutos = 120.000 ms)
+    const MAGNET_SPAWN_INTERVAL_MS = 120000;
+    const MAGNET_MAX_ON_MAP = 3;
+    const MISSION_INTERVAL_MS = 120000;
+
     const ICE_ZONE = { x: 820, y: 820, r: 460 };
     const SWAMP_ZONE = { x: 2380, y: 2380, r: 480 };
     const PORTALS = [
@@ -371,6 +376,7 @@
     let lastFrameTime = performance.now();
     let lastNetSyncTime = 0;
     let lastOrbSyncTime = 0;
+    let lastMagnetBatchTime = performance.now();
 
     let me = null;
     let remotePlayers = new Map();
@@ -384,8 +390,9 @@
     let turboOverheated = false;
 
     let globalEvent = null;
-    let nextEventCheck = performance.now() + 24000;
+    let nextEventCheck = performance.now() + 30000;
     let currentMission = null;
+    let missionTimerHandle = null;
 
     let mouseScreenX = window.innerWidth / 2;
     let mouseScreenY = window.innerHeight / 2;
@@ -473,6 +480,10 @@
     function showLobbyScreen() {
       isPlaying = false;
       isBoosting = false;
+      if (missionTimerHandle) {
+        clearTimeout(missionTimerHandle);
+        missionTimerHandle = null;
+      }
       if (me) me.alive = false;
       hudOverlay.style.display = 'none';
       gameOverOverlay.style.display = 'none';
@@ -536,7 +547,7 @@
       updateRoomSelection('private');
     }
 
-    // ==================== GERADOR DE ORBES E POWER-UPS (HABILIDADES -50%) ====================
+    // ==================== GERADOR DE ORBES E CONTROLE DE ÍMÃS (3 A CADA 2 MIN) ====================
     function createRandomOrb(id, forceType = null) {
       const margin = 140;
       const x = margin + Math.random() * (ARENA_SIZE - margin * 2);
@@ -545,11 +556,10 @@
 
       if (!type) {
         const roll = Math.random();
-        // Taxa de aparição de habilidades reduzida em 50% (total ~3.7%)
-        if (roll < 0.014) type = 'magnet';
-        else if (roll < 0.026) type = 'vision';
-        else if (roll < 0.037) type = 'ghost';
-        else if (roll < 0.095) type = 'poison';
+        // Ímãs NÃO nascem aleatoriamente aqui; apenas 3 são gerados a cada 2 minutos
+        if (roll < 0.012) type = 'vision';
+        else if (roll < 0.023) type = 'ghost';
+        else if (roll < 0.088) type = 'poison';
         else type = 'food';
       }
 
@@ -570,11 +580,41 @@
       };
     }
 
+    function spawnMagnetBatch(targetCount = MAGNET_MAX_ON_MAP) {
+      if (orbs.length === 0) return;
+      const currentMagnets = orbs.filter(o => o.type === 'magnet').length;
+      const toSpawn = Math.max(0, targetCount - currentMagnets);
+      if (toSpawn === 0) return;
+
+      let spawned = 0;
+      const candidates = [];
+      for (let i = 0; i < orbs.length; i++) {
+        if (orbs[i].type === 'food') candidates.push(i);
+      }
+
+      while (spawned < toSpawn && candidates.length > 0) {
+        const randIdx = Math.floor(Math.random() * candidates.length);
+        const orbIndex = candidates.splice(randIdx, 1)[0];
+        orbs[orbIndex] = createRandomOrb(orbs[orbIndex].id, 'magnet');
+        spawned++;
+      }
+
+      if (spawned > 0) {
+        syncOrbsToCloud(true);
+      }
+    }
+
     function generateInitialOrbs(count = 230) {
       const list = [];
       for (let i = 0; i < count; i++) {
         list.push(createRandomOrb('orb_' + i));
       }
+      // Garante exatamente 3 orbes de ímã iniciais no mapa inteiro
+      for (let m = 0; m < MAGNET_MAX_ON_MAP && m < list.length; m++) {
+        const slot = Math.floor((m + 0.5) * (list.length / MAGNET_MAX_ON_MAP));
+        list[slot] = createRandomOrb(list[slot].id, 'magnet');
+      }
+      lastMagnetBatchTime = performance.now();
       return list;
     }
 
@@ -766,7 +806,9 @@
         kills: 0,
         segments,
         powers: { magnet: 0, vision: 0, ghost: 0 },
-        aiTimer: 0
+        aiTimer: 0,
+        botEnergy: 100,
+        isBoosting: false
       };
     }
 
@@ -790,7 +832,14 @@
       }
     }
 
-    // ==================== MISSÕES RELÂMPAGO (MAIS DESAFIADORAS E RITMO EQUILIBRADO) ====================
+    // ==================== MISSÕES RELÂMPAGO (INTERVALO DE 2 MINUTOS) ====================
+    function scheduleNextMission(delayMs = MISSION_INTERVAL_MS) {
+      if (missionTimerHandle) clearTimeout(missionTimerHandle);
+      missionTimerHandle = setTimeout(() => {
+        if (isPlaying) assignNewMission();
+      }, delayMs);
+    }
+
     function assignNewMission() {
       const templates = [
         { type: 'eat_orbs', text: 'Coma 25 orbes brilhantes', target: 25, reward: 35, growth: 3, duration: 25 },
@@ -819,7 +868,8 @@
         }
         currentMission = null;
         document.getElementById('missionCard').classList.add('hidden');
-        setTimeout(() => { if (isPlaying) assignNewMission(); }, 12000);
+        // Próxima missão só aparece após 2 minutos (120.000 ms)
+        scheduleNextMission(MISSION_INTERVAL_MS);
         return;
       }
       updateMissionUI();
@@ -897,7 +947,10 @@
       }
 
       isPlaying = true;
-      assignNewMission();
+      currentMission = null;
+      document.getElementById('missionCard').classList.add('hidden');
+      // Primeira missão surge após 2 minutos de partida (e depois a cada 2 minutos)
+      scheduleNextMission(MISSION_INTERVAL_MS);
       syncPlayerToCloud(true, false);
     }
 
@@ -958,10 +1011,10 @@
       } catch (_) {}
     }
 
-    async function syncOrbsToCloud() {
+    async function syncOrbsToCloud(force = false) {
       if (!isOnlineConnected || !currentUser) return;
       const now = Date.now();
-      if (now - lastOrbSyncTime < 1500) return;
+      if (!force && now - lastOrbSyncTime < 1500) return;
       lastOrbSyncTime = now;
       try {
         await setDoc(doc(db, 'rooms', currentRoomId, 'state', 'orbs'), {
@@ -1057,6 +1110,10 @@
       me.alive = false;
       isPlaying = false;
       isBoosting = false;
+      if (missionTimerHandle) {
+        clearTimeout(missionTimerHandle);
+        missionTimerHandle = null;
+      }
       playTone(150, 0.35, 'sawtooth', 0.09);
       spawnDeathOrbs(me);
       syncPlayerToCloud(true, false);
@@ -1082,7 +1139,9 @@
       if (inIce) speed *= 1.18;
       if (inSwamp) speed *= 0.84;
 
-      const turnRate = inIce ? 3.2 : 5.4;
+      // Bots mais ágeis na curva
+      const baseTurn = snake.isBot ? 6.5 : 5.4;
+      const turnRate = inIce ? baseTurn * 0.62 : baseTurn;
       const diff = normalizeAngle(snake.targetAngle - snake.angle);
       snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), turnRate * dt);
 
@@ -1157,7 +1216,6 @@
           } else {
             const mult = (globalEvent && globalEvent.type === 'gold_rush') ? 2 : 1;
             snake.score += orb.value * mult;
-            // Crescimento mais gradual (a cada 7 pontos em vez de 5)
             if (Math.floor(snake.score / 7) > snake.segments.length - INITIAL_LENGTH) {
               growSnake(snake, 1);
             }
@@ -1178,30 +1236,147 @@
       }
     }
 
+    // ==================== INTELIGÊNCIA ARTIFICIAL AVANÇADA DOS BOTS ====================
     function updateBots(dt) {
       syncBotsPopulation();
+
+      // Reúne todas as cobrinhas vivas para análise tática
+      const allSnakes = [];
+      if (me && me.alive) allSnakes.push(me);
+      for (const b of bots) if (b.alive) allSnakes.push(b);
+      remotePlayers.forEach(rp => { if (rp.alive) allSnakes.push(rp); });
+
       for (const bot of bots) {
         bot.aiTimer -= dt;
-        if (bot.aiTimer <= 0) {
-          bot.aiTimer = 0.25 + Math.random() * 0.35;
-          let bestOrb = null;
-          let bestDist = 480;
-          for (let i = 0; i < orbs.length; i += 2) {
-            const o = orbs[i];
-            if (o.type === 'poison') continue;
-            const d = Math.hypot(o.x - bot.x, o.y - bot.y);
-            if (d < bestDist) {
-              bestDist = d;
-              bestOrb = o;
+
+        // 1. Evasão de perigo imediato em tempo real (a cada frame)
+        let dangerX = 0;
+        let dangerY = 0;
+        let dangerCount = 0;
+        const avoidRadius = 125;
+
+        // Repulsão das bordas da arena
+        const wallDist = 190;
+        if (bot.x < wallDist) { dangerX += (wallDist - bot.x) * 2.5; dangerCount++; }
+        if (bot.x > ARENA_SIZE - wallDist) { dangerX -= (bot.x - (ARENA_SIZE - wallDist)) * 2.5; dangerCount++; }
+        if (bot.y < wallDist) { dangerY += (wallDist - bot.y) * 2.5; dangerCount++; }
+        if (bot.y > ARENA_SIZE - wallDist) { dangerY -= (bot.y - (ARENA_SIZE - wallDist)) * 2.5; dangerCount++; }
+
+        // Repulsão de corpos de outras cobras e orbes venenosos
+        if (bot.powers.ghost <= 0) {
+          for (const other of allSnakes) {
+            if (other.id === bot.id || !other.alive || !Array.isArray(other.segments)) continue;
+            const step = other.segments.length > 35 ? 2 : 1;
+            for (let i = 0; i < other.segments.length; i += step) {
+              const seg = other.segments[i];
+              const dx = bot.x - seg.x;
+              const dy = bot.y - seg.y;
+              const d = Math.hypot(dx, dy);
+              if (d < avoidRadius && d > 0.1) {
+                const weight = ((avoidRadius - d) / avoidRadius) * 240;
+                dangerX += (dx / d) * weight;
+                dangerY += (dy / d) * weight;
+                dangerCount++;
+              }
             }
           }
-          if (bestOrb) {
-            bot.targetAngle = Math.atan2(bestOrb.y - bot.y, bestOrb.x - bot.x);
-          } else {
-            bot.targetAngle += (Math.random() - 0.5) * 1.4;
+
+          for (let i = 0; i < orbs.length; i += 2) {
+            const o = orbs[i];
+            if (o.type !== 'poison') continue;
+            const dx = bot.x - o.x;
+            const dy = bot.y - o.y;
+            const d = Math.hypot(dx, dy);
+            if (d < 85 && d > 0.1) {
+              dangerX += (dx / d) * 180;
+              dangerY += (dy / d) * 180;
+              dangerCount++;
+            }
           }
         }
-        updateSnakeMovement(bot, dt, false);
+
+        // 2. Decisão estratégica (Caça/Interceptação ou Busca de Orbes Valiosos)
+        if (bot.aiTimer <= 0) {
+          bot.aiTimer = 0.14 + Math.random() * 0.16;
+          bot.isBoosting = false;
+
+          let huntedTarget = null;
+          // Se o bot tiver bom tamanho/energia, tenta interceptar e cortar a frente de outra cobra
+          if (bot.score >= 16 && bot.botEnergy > 45 && dangerCount === 0) {
+            let closestVictim = null;
+            let closestDist = 340;
+            for (const other of allSnakes) {
+              if (other.id === bot.id || !other.alive) continue;
+              const d = Math.hypot(other.x - bot.x, other.y - bot.y);
+              if (d < closestDist && d > 75) {
+                closestDist = d;
+                closestVictim = other;
+              }
+            }
+
+            if (closestVictim) {
+              // Projeta um ponto à frente da cabeça da vítima para cortar o caminho
+              const leadDist = 115;
+              const interceptX = Math.max(120, Math.min(ARENA_SIZE - 120, closestVictim.x + Math.cos(closestVictim.angle || 0) * leadDist));
+              const interceptY = Math.max(120, Math.min(ARENA_SIZE - 120, closestVictim.y + Math.sin(closestVictim.angle || 0) * leadDist));
+              bot.targetAngle = Math.atan2(interceptY - bot.y, interceptX - bot.x);
+              bot.isBoosting = true;
+              huntedTarget = closestVictim;
+            }
+          }
+
+          if (!huntedTarget) {
+            let bestOrb = null;
+            let bestScoreVal = -Infinity;
+
+            for (let i = 0; i < orbs.length; i++) {
+              const o = orbs[i];
+              if (o.type === 'poison') continue;
+              const d = Math.hypot(o.x - bot.x, o.y - bot.y);
+              if (d > 680) continue;
+
+              // Prioriza power-ups e orbes de morte (radius > 8)
+              let priority = o.value * 140;
+              if (o.type === 'magnet' || o.type === 'vision' || o.type === 'ghost') priority += 450;
+              if (o.radius >= 8) priority += 220;
+
+              const utility = priority - d;
+              if (utility > bestScoreVal) {
+                bestScoreVal = utility;
+                bestOrb = o;
+              }
+            }
+
+            if (bestOrb) {
+              bot.targetAngle = Math.atan2(bestOrb.y - bot.y, bestOrb.x - bot.x);
+              // Usa turbo curto se houver um orbe especial/de abate muito próximo
+              if ((bestOrb.radius >= 8 || bestOrb.type !== 'food') && Math.hypot(bestOrb.x - bot.x, bestOrb.y - bot.y) < 190 && bot.botEnergy > 50 && bot.score > 14) {
+                bot.isBoosting = true;
+              }
+            } else {
+              bot.targetAngle += (Math.random() - 0.5) * 0.9;
+            }
+          }
+        }
+
+        // Evasão sobrepõe qualquer alvo se houver risco de colisão
+        if (dangerCount > 0) {
+          bot.targetAngle = Math.atan2(dangerY, dangerX);
+          if (dangerCount >= 2 && bot.botEnergy > 30 && bot.score > 13) {
+            bot.isBoosting = true;
+          }
+        }
+
+        // Gerenciamento da energia de turbo do bot
+        const botCanBoost = bot.isBoosting && bot.botEnergy > 15 && bot.score > 12;
+        if (botCanBoost) {
+          bot.botEnergy = Math.max(0, bot.botEnergy - 36 * dt);
+          bot.score = Math.max(10, bot.score - 2.0 * dt);
+        } else {
+          bot.botEnergy = Math.min(100, bot.botEnergy + 24 * dt);
+        }
+
+        updateSnakeMovement(bot, dt, botCanBoost);
       }
     }
 
@@ -1235,6 +1410,7 @@
         }
       }
 
+      // Colisão dos bots contra o jogador local
       for (let b = bots.length - 1; b >= 0; b--) {
         const bot = bots[b];
         if (!bot.alive || bot.powers.ghost > 0) continue;
@@ -1250,6 +1426,32 @@
             playTone(580, 0.14, 'triangle', 0.08);
             break;
           }
+        }
+      }
+
+      // Colisão entre bots (deixa a arena mais dinâmica e competitiva)
+      for (let b1 = bots.length - 1; b1 >= 0; b1--) {
+        const attacker = bots[b1];
+        if (!attacker || !attacker.alive || attacker.powers.ghost > 0) continue;
+        for (let b2 = 0; b2 < bots.length; b2++) {
+          if (b1 === b2) continue;
+          const victim = bots[b2];
+          if (!victim || !victim.alive) continue;
+          let crashed = false;
+          for (let i = 2; i < victim.segments.length; i++) {
+            const seg = victim.segments[i];
+            if (Math.hypot(attacker.x - seg.x, attacker.y - seg.y) < 13.5) {
+              attacker.alive = false;
+              victim.kills += 1;
+              victim.score += 18;
+              growSnake(victim, 3);
+              spawnDeathOrbs(attacker);
+              bots.splice(b1, 1);
+              crashed = true;
+              break;
+            }
+          }
+          if (crashed) break;
         }
       }
     }
@@ -1522,6 +1724,12 @@
         spawnProtection = Math.max(0, spawnProtection - dt);
       }
 
+      // Ciclo rígido de 2 minutos (120.000 ms) para repor até 3 orbes de ímã no mapa inteiro
+      if (now - lastMagnetBatchTime >= MAGNET_SPAWN_INTERVAL_MS) {
+        lastMagnetBatchTime = now;
+        spawnMagnetBatch(MAGNET_MAX_ON_MAP);
+      }
+
       updateRemotePlayersSmooth(dt);
 
       if (isPlaying) {
@@ -1533,7 +1741,7 @@
           if (globalEvent.timeLeft <= 0) {
             globalEvent = null;
             document.getElementById('globalEventCard').classList.add('hidden');
-            nextEventCheck = now + 45000;
+            nextEventCheck = now + 60000;
           }
         }
 
@@ -1542,7 +1750,8 @@
           if (currentMission.timeLeft <= 0) {
             currentMission = null;
             document.getElementById('missionCard').classList.add('hidden');
-            setTimeout(() => { if (isPlaying) assignNewMission(); }, 10000);
+            // Se expirar, próxima missão também aguarda 2 minutos
+            scheduleNextMission(MISSION_INTERVAL_MS);
           } else {
             if (currentMission.type === 'ice_survive' && me && me.alive) {
               if (Math.hypot(me.x - ICE_ZONE.x, me.y - ICE_ZONE.y) < ICE_ZONE.r) {
