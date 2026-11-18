@@ -116,7 +116,7 @@
           <button id="toggleGfxBtn" type="button" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-700 text-[10px] sm:text-[11px] font-bold text-slate-200 transition">
             ✨ HD
           </button>
-          <button id="leaveRoomBtn" type="button" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-rose-950/80 hover:bg-rose-800 border border-rose-500/40 text-[10px] sm:text-[11px] font-bold text-rose-200 transition">
+          <button id="leaveRoomBtn" type="button" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-rose-950/80 hover:bg-rose-800 border border-rose-500/40 text-[10px] sm:text-[11px] font-bold text-rose-200 transition pointer-events-auto">
             Sair
           </button>
         </div>
@@ -863,9 +863,23 @@
       if (orbs.length === 0) orbs = generateInitialOrbs(230);
       syncBotsPopulation();
 
-      lobbyOverlay.classList.add('hidden');
-      document.getElementById('gameOverOverlay').classList.add('hidden');
-      document.getElementById('hudOverlay').classList.remove('hidden');
+      const hud = document.getElementById('hudOverlay');
+      const go = document.getElementById('gameOverOverlay');
+      const lobby = document.getElementById('lobbyOverlay');
+
+      if (lobby) {
+        lobby.classList.add('hidden');
+        lobby.style.display = 'none';
+      }
+      if (go) {
+        go.classList.add('hidden');
+        go.style.display = 'none';
+      }
+      if (hud) {
+        hud.classList.remove('hidden');
+        hud.style.display = 'flex';
+      }
+
       document.getElementById('hudRoomBadge').textContent = roomMode === 'public'
         ? '🌐 Pública'
         : '🔒 ' + currentRoomId.replace('private_', '');
@@ -878,6 +892,7 @@
     startGameBtn.addEventListener('click', startMatch);
     document.getElementById('respawnBtn').addEventListener('click', startMatch);
 
+    // BOTÃO SAIR CORRIGIDO COM EXIBIÇÃO FORÇADA DO LOBBY
     document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
       isPlaying = false;
       if (me) me.alive = false;
@@ -888,10 +903,23 @@
 
       await removePlayerFromCloud();
 
-      // Esconde HUD e exibe o lobby de forma segura
-      document.getElementById('hudOverlay').classList.add('hidden');
-      document.getElementById('gameOverOverlay').classList.add('hidden');
-      document.getElementById('lobbyOverlay').classList.remove('hidden');
+      // Força ocultação do HUD e exibição absoluta do Lobby
+      const hud = document.getElementById('hudOverlay');
+      const go = document.getElementById('gameOverOverlay');
+      const lobby = document.getElementById('lobbyOverlay');
+
+      if (hud) {
+        hud.classList.add('hidden');
+        hud.style.display = 'none';
+      }
+      if (go) {
+        go.classList.add('hidden');
+        go.style.display = 'none';
+      }
+      if (lobby) {
+        lobby.classList.remove('hidden');
+        lobby.style.display = 'flex';
+      }
 
       remotePlayers.clear();
       me = null;
@@ -1051,8 +1079,17 @@
       document.getElementById('deathReasonText').textContent = reason;
       document.getElementById('finalScoreText').textContent = Math.round(me.score);
       document.getElementById('finalKillsText').textContent = me.kills;
-      document.getElementById('hudOverlay').classList.add('hidden');
-      document.getElementById('gameOverOverlay').classList.remove('hidden');
+      
+      const hud = document.getElementById('hudOverlay');
+      const go = document.getElementById('gameOverOverlay');
+      if (hud) {
+        hud.classList.add('hidden');
+        hud.style.display = 'none';
+      }
+      if (go) {
+        go.classList.remove('hidden');
+        go.style.display = 'flex';
+      }
     }
 
     function updateSnakeMovement(snake, dt, boosting) {
