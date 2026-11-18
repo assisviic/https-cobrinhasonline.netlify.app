@@ -47,101 +47,101 @@
   <!-- CANVAS DO JOGO -->
   <canvas id="gameCanvas"></canvas>
 
-  <!-- HUD SUPERIOR -->
-  <div id="hudOverlay" class="hidden fixed inset-0 pointer-events-none z-20 p-3 sm:p-4 flex flex-col justify-between">
+  <!-- HUD SUPERIOR COMPACTO PARA CELULAR -->
+  <div id="hudOverlay" class="hidden fixed inset-0 pointer-events-none z-20 p-2 sm:p-4 flex flex-col justify-between">
     <!-- Linha Topo: Missão / Evento + Ranking + Controles -->
-    <div class="flex items-start justify-between gap-2">
+    <div class="flex items-start justify-between gap-1.5 sm:gap-2">
       <!-- Esquerda: Pontuação, Turbo, Habilidades Ativas e Missão Relâmpago -->
-      <div class="flex flex-col gap-2 max-w-[230px] sm:max-w-[270px]">
+      <div class="flex flex-col gap-1 sm:gap-2 max-w-[162px] sm:max-w-[270px]">
         <!-- Status e Pontos -->
-        <div class="bg-slate-950/80 border border-slate-800/90 rounded-2xl px-3 py-2 backdrop-blur-sm shadow-lg">
-          <div class="flex items-center justify-between gap-3">
+        <div class="bg-slate-950/75 border border-slate-800/80 rounded-xl sm:rounded-2xl px-2 py-1.5 sm:px-3 sm:py-2 backdrop-blur-sm shadow-lg">
+          <div class="flex items-center justify-between gap-2 sm:gap-3">
             <div>
-              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pontuação</div>
-              <div id="hudScore" class="text-lg sm:text-xl font-black text-emerald-400 leading-tight">10</div>
+              <div class="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Pontos</div>
+              <div id="hudScore" class="text-sm sm:text-xl font-black text-emerald-400 leading-none sm:leading-tight">10</div>
             </div>
             <div class="text-right">
-              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Abates</div>
-              <div id="hudKills" class="text-sm sm:text-base font-extrabold text-amber-400 leading-tight">0</div>
+              <div class="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Abates</div>
+              <div id="hudKills" class="text-xs sm:text-base font-extrabold text-amber-400 leading-none sm:leading-tight">0</div>
             </div>
           </div>
 
           <!-- Barra de Turbo / Temperatura -->
-          <div class="mt-2">
-            <div class="flex justify-between text-[10px] font-bold mb-0.5">
+          <div class="mt-1 sm:mt-2">
+            <div class="flex justify-between text-[8px] sm:text-[10px] font-bold mb-0.5">
               <span id="turboLabel" class="text-cyan-300">⚡ TURBO</span>
               <span id="turboPct" class="text-slate-300">100%</span>
             </div>
-            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div class="w-full h-1 sm:h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div id="turboBar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-75" style="width: 100%"></div>
             </div>
           </div>
 
           <!-- Power-ups Ativos -->
-          <div id="activePowersHud" class="flex flex-wrap gap-1.5 mt-2 empty:hidden"></div>
+          <div id="activePowersHud" class="flex flex-wrap gap-1 mt-1 sm:mt-2 empty:hidden"></div>
         </div>
 
-        <!-- Banner Evento Relâmpago Global -->
-        <div id="globalEventCard" class="hidden bg-amber-950/85 border border-amber-500/40 rounded-xl px-3 py-2 shadow-lg">
-          <div class="flex items-center justify-between gap-2">
-            <span id="globalEventTitle" class="text-[11px] font-black text-amber-300 uppercase tracking-wide">⚡ EVENTO RELÂMPAGO</span>
-            <span id="globalEventTimer" class="text-[11px] font-extrabold text-white bg-amber-600/40 px-1.5 py-0.5 rounded">30s</span>
+        <!-- Banner Evento Relâmpago Global (Ultra-compacto no mobile) -->
+        <div id="globalEventCard" class="hidden bg-amber-950/80 border border-amber-500/40 rounded-lg sm:rounded-xl px-2 py-1 sm:px-3 sm:py-2 shadow-lg">
+          <div class="flex items-center justify-between gap-1.5">
+            <span id="globalEventTitle" class="text-[9px] sm:text-[11px] font-black text-amber-300 uppercase tracking-wide truncate">⚡ EVENTO</span>
+            <span id="globalEventTimer" class="text-[9px] sm:text-[11px] font-extrabold text-white bg-amber-600/40 px-1 py-0.5 rounded shrink-0">30s</span>
           </div>
-          <p id="globalEventDesc" class="text-[11px] text-amber-100/90 mt-0.5 leading-tight"></p>
+          <p id="globalEventDesc" class="text-[9px] sm:text-[11px] text-amber-100/90 mt-0.5 leading-tight line-clamp-1 sm:line-clamp-none"></p>
         </div>
 
-        <!-- Card Missão Relâmpago Individual -->
-        <div id="missionCard" class="hidden bg-indigo-950/85 border border-indigo-400/40 rounded-xl px-3 py-2 shadow-lg">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">🎯 MISSÃO RELÂMPAGO</span>
-            <span id="missionTimer" class="text-[10px] font-bold text-indigo-200 bg-indigo-500/30 px-1.5 py-0.5 rounded">25s</span>
+        <!-- Card Missão Relâmpago Individual (Ultra-compacto no mobile) -->
+        <div id="missionCard" class="hidden bg-indigo-950/80 border border-indigo-400/40 rounded-lg sm:rounded-xl px-2 py-1 sm:px-3 sm:py-2 shadow-lg">
+          <div class="flex items-center justify-between gap-1">
+            <span class="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-300">🎯 MISSÃO</span>
+            <span id="missionTimer" class="text-[8px] sm:text-[10px] font-bold text-indigo-200 bg-indigo-500/30 px-1 py-0.2 rounded">25s</span>
           </div>
-          <div id="missionText" class="text-xs font-bold text-white mt-0.5 leading-snug">Coma 15 orbes</div>
-          <div class="flex items-center justify-between text-[10px] text-indigo-200 mt-1">
-            <span id="missionProgressText">0 / 15</span>
-            <span id="missionRewardText" class="font-extrabold text-amber-300">+80 pts</span>
+          <div id="missionText" class="text-[10px] sm:text-xs font-bold text-white mt-0.5 leading-tight truncate">Coma 15 orbes</div>
+          <div class="flex items-center justify-between text-[8px] sm:text-[10px] text-indigo-200 mt-0.5 sm:mt-1">
+            <span id="missionProgressText">0/15</span>
+            <span id="missionRewardText" class="font-extrabold text-amber-300">+80</span>
           </div>
-          <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden mt-1">
+          <div class="w-full h-1 sm:h-1.5 bg-slate-900 rounded-full overflow-hidden mt-0.5 sm:mt-1">
             <div id="missionBar" class="h-full bg-gradient-to-r from-indigo-400 to-amber-400 transition-all duration-150" style="width: 0%"></div>
           </div>
         </div>
       </div>
 
-      <!-- Direita: Botões Rápidos + Ranking -->
-      <div class="flex flex-col items-end gap-2">
-        <div class="flex items-center gap-1.5 pointer-events-auto">
+      <!-- Direita: Botões Rápidos + Ranking Compacto -->
+      <div class="flex flex-col items-end gap-1 sm:gap-2">
+        <div class="flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
           <span id="hudRoomBadge" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-950/85 border border-slate-800 text-[11px] font-bold text-emerald-300">
             🌐 Pública
           </span>
-          <button id="toggleGfxBtn" type="button" class="px-2.5 py-1 rounded-xl bg-slate-950/85 hover:bg-slate-800 border border-slate-700 text-[11px] font-bold text-slate-200 transition">
+          <button id="toggleGfxBtn" type="button" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-700 text-[10px] sm:text-[11px] font-bold text-slate-200 transition">
             ✨ HD
           </button>
-          <button id="leaveRoomBtn" type="button" class="px-2.5 py-1 rounded-xl bg-rose-950/85 hover:bg-rose-800 border border-rose-500/40 text-[11px] font-bold text-rose-200 transition">
+          <button id="leaveRoomBtn" type="button" class="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-rose-950/80 hover:bg-rose-800 border border-rose-500/40 text-[10px] sm:text-[11px] font-bold text-rose-200 transition">
             Sair
           </button>
         </div>
 
-        <!-- Ranking Compacto -->
-        <div class="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-2.5 w-[155px] sm:w-[190px] backdrop-blur-sm shadow-lg">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400">🏆 Ranking</span>
-            <span id="hudPlayersOnline" class="text-[10px] font-bold text-slate-400">1/10</span>
+        <!-- Ranking Compacto (Top 3 no celular, Top 5 no PC) -->
+        <div class="bg-slate-950/75 border border-slate-800/80 rounded-xl sm:rounded-2xl px-2 py-1.5 sm:p-2.5 w-[114px] sm:w-[190px] backdrop-blur-sm shadow-lg">
+          <div class="flex items-center justify-between mb-0.5 sm:mb-1.5">
+            <span class="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-amber-400">🏆 Top</span>
+            <span id="hudPlayersOnline" class="text-[8px] sm:text-[10px] font-bold text-slate-400">1/10</span>
           </div>
-          <div id="leaderboardList" class="space-y-1 text-[11px]"></div>
+          <div id="leaderboardList" class="space-y-0.5 sm:space-y-1 text-[9px] sm:text-[11px] leading-tight"></div>
         </div>
       </div>
     </div>
 
     <!-- Rodapé: Dica de Controle + Radar Minimapa -->
     <div class="flex items-end justify-between">
-      <div class="bg-slate-950/75 border border-slate-800/80 rounded-xl px-2.5 py-1.5 text-[10px] sm:text-xs text-slate-300">
+      <div class="bg-slate-950/70 border border-slate-800/75 rounded-lg sm:rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 text-[9px] sm:text-xs text-slate-300">
         <span class="hidden sm:inline">🖱️ Mova o mouse para guiar • Segure <b>Clique / Espaço</b> para Turbo</span>
-        <span class="sm:hidden">👆 Arraste para guiar • <b>2 toques</b> para Turbo</span>
+        <span class="sm:hidden">👆 Arraste • <b>2 toques</b>: Turbo</span>
       </div>
 
       <!-- Minimapa -->
-      <div class="relative rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950/85 shadow-xl">
-        <canvas id="minimapCanvas" width="116" height="116" class="block w-[96px] h-[96px] sm:w-[116px] sm:h-[116px]"></canvas>
+      <div class="relative rounded-xl sm:rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950/80 shadow-xl">
+        <canvas id="minimapCanvas" width="116" height="116" class="block w-[74px] h-[74px] sm:w-[116px] sm:h-[116px]"></canvas>
       </div>
     </div>
   </div>
@@ -583,7 +583,6 @@
             const incomingSegs = Array.isArray(data.segments) ? data.segments : [];
 
             if (!existing) {
-              // Primeiro contato: inicializa pontos de renderização já na posição exata
               remotePlayers.set(docSnap.id, {
                 id: docSnap.id,
                 ...data,
@@ -595,7 +594,6 @@
                 lastPacketTime: performance.now()
               });
             } else {
-              // Atualiza apenas os alvos (targets); o loop de 60 FPS interpola suavemente
               existing.name = data.name;
               existing.color = data.color;
               existing.skin = data.skin;
@@ -606,7 +604,6 @@
               existing.boosting = Boolean(data.boosting);
               existing.lastSeen = data.lastSeen;
 
-              // Se houve teleporte de portal (salto > 450px), encaixa imediatamente
               const jumpDist = Math.hypot(data.x - existing.x, data.y - existing.y);
               if (jumpDist > 450) {
                 existing.x = data.x;
@@ -624,7 +621,6 @@
           }
         });
 
-        // Remove quem saiu ou morreu
         for (const id of remotePlayers.keys()) {
           if (!activeIds.has(id)) {
             remotePlayers.delete(id);
@@ -655,7 +651,6 @@
       });
     }
 
-    // Atualiza suavemente todos os jogadores remotos a 60 FPS (Interpolação + Dead Reckoning)
     function updateRemotePlayersSmooth(dt) {
       const now = performance.now();
       const posBlend = 1 - Math.exp(-16 * dt);
@@ -664,21 +659,17 @@
       remotePlayers.forEach((rp) => {
         if (!rp.alive) return;
 
-        // 1. Previsão leve de movimento (Dead Reckoning) enquanto aguarda próximo pacote
         const packetAge = Math.min(0.22, (now - (rp.lastPacketTime || now)) / 1000);
         const estSpeed = rp.boosting ? BOOST_SPEED : BASE_SPEED;
         const predictedX = rp.targetX + Math.cos(rp.targetAngle) * estSpeed * packetAge * 0.65;
         const predictedY = rp.targetY + Math.sin(rp.targetAngle) * estSpeed * packetAge * 0.65;
 
-        // 2. Interpola posição e ângulo da cabeça
         rp.x += (predictedX - rp.x) * posBlend;
         rp.y += (predictedY - rp.y) * posBlend;
         rp.angle = lerpAngle(rp.angle || 0, rp.targetAngle || 0, posBlend);
 
-        // 3. Interpola cada segmento do corpo e mantém a cadeia conectada
         const targets = rp.targetSegments || [];
         if (targets.length > 0) {
-          // Ajusta tamanho do array de segmentos suavemente
           while (rp.segments.length < targets.length) {
             const last = rp.segments[rp.segments.length - 1] || { x: rp.x, y: rp.y };
             rp.segments.push({ x: last.x, y: last.y });
@@ -773,10 +764,10 @@
     // ==================== MISSÕES RELÂMPAGO & EVENTOS ====================
     function assignNewMission() {
       const templates = [
-        { type: 'eat_orbs', text: 'Coma 15 orbes brilhantes', target: 15, reward: 60, duration: 28 },
-        { type: 'swamp_orbs', text: 'Coma 6 orbes no Pântano', target: 6, reward: 85, duration: 32 },
-        { type: 'ice_survive', text: 'Sobreviva 12s na Zona de Gelo', target: 12, reward: 75, duration: 28 },
-        { type: 'collect_power', text: 'Pegue 1 habilidade especial', target: 1, reward: 70, duration: 30 }
+        { type: 'eat_orbs', text: 'Coma 15 orbes', target: 15, reward: 60, duration: 28 },
+        { type: 'swamp_orbs', text: '6 orbes no Pântano', target: 6, reward: 85, duration: 32 },
+        { type: 'ice_survive', text: '12s na Zona de Gelo', target: 12, reward: 75, duration: 28 },
+        { type: 'collect_power', text: 'Pegue 1 poder', target: 1, reward: 70, duration: 30 }
       ];
       const tpl = templates[Math.floor(Math.random() * templates.length)];
       currentMission = {
@@ -814,16 +805,16 @@
       card.classList.remove('hidden');
       document.getElementById('missionTimer').textContent = Math.ceil(currentMission.timeLeft) + 's';
       document.getElementById('missionText').textContent = currentMission.text;
-      document.getElementById('missionProgressText').textContent = `${Math.floor(currentMission.progress)} / ${currentMission.target}`;
-      document.getElementById('missionRewardText').textContent = `+${currentMission.reward} pts`;
+      document.getElementById('missionProgressText').textContent = `${Math.floor(currentMission.progress)}/${currentMission.target}`;
+      document.getElementById('missionRewardText').textContent = `+${currentMission.reward}`;
       const pct = Math.min(100, (currentMission.progress / currentMission.target) * 100);
       document.getElementById('missionBar').style.width = pct + '%';
     }
 
     function triggerGlobalEvent() {
       const events = [
-        { type: 'gold_rush', title: '⚡ FEBRE DE ORBES', desc: 'Orbes valem o dobro de pontos por 25s!' },
-        { type: 'super_magnet', title: '🧲 TEMPESTADE MAGNÉTICA', desc: 'Alcance de coleta aumentado para todos!' }
+        { type: 'gold_rush', title: '⚡ FEBRE DE ORBES', desc: 'Pontos em dobro por 25s!' },
+        { type: 'super_magnet', title: '🧲 TEMPESTADE MAGNÉTICA', desc: 'Ímã global ativo!' }
       ];
       const ev = events[Math.floor(Math.random() * events.length)];
       globalEvent = { ...ev, timeLeft: 25 };
@@ -890,7 +881,7 @@
     });
     document.getElementById('toggleGfxBtn').textContent = lowGraphics ? '⚡ Leve' : '✨ HD';
 
-    // ==================== SINCRONIZAÇÃO EM NUVEM (85ms OTIMIZADO) ====================
+    // ==================== SINCRONIZAÇÃO EM NUVEM ====================
     async function syncPlayerToCloud(force = false, activeBoost = false) {
       if (!isOnlineConnected || !currentUser || !me) return;
       const now = Date.now();
@@ -1422,13 +1413,14 @@
 
       const powersDiv = document.getElementById('activePowersHud');
       let badges = '';
-      if (me.powers.magnet > 0) badges += `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-[10px] font-bold text-amber-300">🧲 ${Math.ceil(me.powers.magnet)}s</span>`;
-      if (me.powers.vision > 0) badges += `<span class="px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 text-[10px] font-bold text-cyan-300">👁️ ${Math.ceil(me.powers.vision)}s</span>`;
-      if (me.powers.ghost > 0) badges += `<span class="px-1.5 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-[10px] font-bold text-purple-300">👻 ${Math.ceil(me.powers.ghost)}s</span>`;
+      if (me.powers.magnet > 0) badges += `<span class="px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-[8px] sm:text-[10px] font-bold text-amber-300">🧲 ${Math.ceil(me.powers.magnet)}s</span>`;
+      if (me.powers.vision > 0) badges += `<span class="px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 text-[8px] sm:text-[10px] font-bold text-cyan-300">👁️ ${Math.ceil(me.powers.vision)}s</span>`;
+      if (me.powers.ghost > 0) badges += `<span class="px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-[8px] sm:text-[10px] font-bold text-purple-300">👻 ${Math.ceil(me.powers.ghost)}s</span>`;
       powersDiv.innerHTML = badges;
 
+      const isMobile = window.innerWidth < 640;
       const all = [];
-      if (me.alive) all.push({ name: me.name + ' (Você)', score: me.score, isMe: true });
+      if (me.alive) all.push({ name: isMobile ? me.name : (me.name + ' (Você)'), score: me.score, isMe: true });
       remotePlayers.forEach(rp => {
         if (rp.alive) all.push({ name: rp.name || 'Jogador', score: rp.score || 10, isMe: false });
       });
@@ -1437,11 +1429,12 @@
       });
       all.sort((a, b) => b.score - a.score);
 
+      const maxEntries = isMobile ? 3 : 5;
       const listEl = document.getElementById('leaderboardList');
-      listEl.innerHTML = all.slice(0, 5).map((item, idx) => `
+      listEl.innerHTML = all.slice(0, maxEntries).map((item, idx) => `
         <div class="flex items-center justify-between gap-1 ${item.isMe ? 'text-emerald-300 font-black' : 'text-slate-300'}">
           <span class="truncate">${idx + 1}. ${item.name}</span>
-          <span class="font-bold">${Math.round(item.score)}</span>
+          <span class="font-bold shrink-0">${Math.round(item.score)}</span>
         </div>
       `).join('');
     }
@@ -1488,7 +1481,6 @@
       const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
-      // Suaviza jogadores remotos a 60 FPS tanto no lobby quanto na partida
       updateRemotePlayersSmooth(dt);
 
       if (isPlaying) {
@@ -1567,7 +1559,9 @@
 
       const focusX = (me && me.alive) ? me.x : (ARENA_SIZE / 2 + Math.cos(now * 0.0002) * 500);
       const focusY = (me && me.alive) ? me.y : (ARENA_SIZE / 2 + Math.sin(now * 0.0002) * 500);
-      const zoom = (me && me.alive && me.powers.vision > 0) ? 0.78 : 1.0;
+      const isMobile = canvas.width < 640;
+      const baseZoom = isMobile ? 0.84 : 1.0;
+      const zoom = (me && me.alive && me.powers.vision > 0) ? baseZoom * 0.78 : baseZoom;
 
       ctx.save();
       ctx.fillStyle = '#060a12';
