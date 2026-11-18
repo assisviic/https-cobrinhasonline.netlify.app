@@ -629,8 +629,10 @@
 
         const totalHumans = remotePlayers.size + (isPlaying ? 1 : 0);
         const displayCount = Math.min(MAX_ROOM_PLAYERS, Math.max(1, totalHumans));
-        document.getElementById('lobbyRoomCount').textContent = `👥 ${displayCount}/${MAX_ROOM_PLAYERS} na sala`;
-        document.getElementById('hudPlayersOnline').textContent = `${displayCount}/${MAX_ROOM_PLAYERS}`;
+        const countEl = document.getElementById('lobbyRoomCount');
+        if (countEl) countEl.textContent = `👥 ${displayCount}/${MAX_ROOM_PLAYERS} na sala`;
+        const onlineEl = document.getElementById('hudPlayersOnline');
+        if (onlineEl) onlineEl.textContent = `${displayCount}/${MAX_ROOM_PLAYERS}`;
       }, (err) => {
         console.warn('Firestore players listener:', err.code);
       });
@@ -789,7 +791,8 @@
           setTimeout(() => playTone(880, 0.18, 'triangle', 0.08), 90);
         }
         currentMission = null;
-        document.getElementById('missionCard').classList.add('hidden');
+        const card = document.getElementById('missionCard');
+        if (card) card.classList.add('hidden');
         setTimeout(() => { if (isPlaying) assignNewMission(); }, 8000);
         return;
       }
@@ -798,17 +801,23 @@
 
     function updateMissionUI() {
       const card = document.getElementById('missionCard');
+      if (!card) return;
       if (!currentMission) {
         card.classList.add('hidden');
         return;
       }
       card.classList.remove('hidden');
-      document.getElementById('missionTimer').textContent = Math.ceil(currentMission.timeLeft) + 's';
-      document.getElementById('missionText').textContent = currentMission.text;
-      document.getElementById('missionProgressText').textContent = `${Math.floor(currentMission.progress)}/${currentMission.target}`;
-      document.getElementById('missionRewardText').textContent = `+${currentMission.reward}`;
+      const timerEl = document.getElementById('missionTimer');
+      if (timerEl) timerEl.textContent = Math.ceil(currentMission.timeLeft) + 's';
+      const textEl = document.getElementById('missionText');
+      if (textEl) textEl.textContent = currentMission.text;
+      const progText = document.getElementById('missionProgressText');
+      if (progText) progText.textContent = `${Math.floor(currentMission.progress)}/${currentMission.target}`;
+      const rewText = document.getElementById('missionRewardText');
+      if (rewText) rewText.textContent = `+${currentMission.reward}`;
       const pct = Math.min(100, (currentMission.progress / currentMission.target) * 100);
-      document.getElementById('missionBar').style.width = pct + '%';
+      const bar = document.getElementById('missionBar');
+      if (bar) bar.style.width = pct + '%';
     }
 
     function triggerGlobalEvent() {
@@ -818,9 +827,12 @@
       ];
       const ev = events[Math.floor(Math.random() * events.length)];
       globalEvent = { ...ev, timeLeft: 25 };
-      document.getElementById('globalEventTitle').textContent = ev.title;
-      document.getElementById('globalEventDesc').textContent = ev.desc;
-      document.getElementById('globalEventCard').classList.remove('hidden');
+      const titleEl = document.getElementById('globalEventTitle');
+      if (titleEl) titleEl.textContent = ev.title;
+      const descEl = document.getElementById('globalEventDesc');
+      if (descEl) descEl.textContent = ev.desc;
+      const cardEl = document.getElementById('globalEventCard');
+      if (cardEl) cardEl.classList.remove('hidden');
     }
 
     // ==================== INICIAR / ENTRAR NA PARTIDA ====================
@@ -1488,10 +1500,12 @@
           triggerGlobalEvent();
         } else if (globalEvent) {
           globalEvent.timeLeft -= dt;
-          document.getElementById('globalEventTimer').textContent = Math.max(0, Math.ceil(globalEvent.timeLeft)) + 's';
+          const timerEl = document.getElementById('globalEventTimer');
+          if (timerEl) timerEl.textContent = Math.max(0, Math.ceil(globalEvent.timeLeft)) + 's';
           if (globalEvent.timeLeft <= 0) {
             globalEvent = null;
-            document.getElementById('globalEventCard').classList.add('hidden');
+            const cardEl = document.getElementById('globalEventCard');
+            if (cardEl) cardEl.classList.add('hidden');
             nextEventCheck = now + 35000;
           }
         }
@@ -1500,7 +1514,8 @@
           currentMission.timeLeft -= dt;
           if (currentMission.timeLeft <= 0) {
             currentMission = null;
-            document.getElementById('missionCard').classList.add('hidden');
+            const card = document.getElementById('missionCard');
+            if (card) card.classList.add('hidden');
             setTimeout(() => { if (isPlaying) assignNewMission(); }, 7000);
           } else {
             if (currentMission.type === 'ice_survive' && me && me.alive) {
