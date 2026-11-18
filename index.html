@@ -333,7 +333,7 @@
     const MAX_ROOM_PLAYERS = 10;
     const TARGET_TOTAL_SNAKES = 8;
     const BASE_SPEED = 240;
-    const MIN_SPEED_FACTOR = 0.58; // Velocidade mínima quando muito grande (58%)
+    const MIN_SPEED_FACTOR = 0.58;
     const SEGMENT_SPACING = 6.5;
     const INITIAL_LENGTH = 18;
     const ORB_PALETTE = ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf'];
@@ -412,7 +412,6 @@
     function getSizeSpeedFactor(snake) {
       if (!snake || !Array.isArray(snake.segments)) return 1;
       const extraSegments = Math.max(0, snake.segments.length - INITIAL_LENGTH);
-      // Perde cerca de 0.35% de velocidade a cada segmento extra até o limite mínimo de 58%
       return Math.max(MIN_SPEED_FACTOR, 1 - extraSegments * 0.0035);
     }
 
@@ -800,7 +799,10 @@
         kills: 0,
         segments,
         powers: { magnet: 0, vision: 0, ghost: 0 },
-        aiTimer: 0
+        aiTimer: 0,
+        huntCooldown: 4 + Math.random() * 6,
+        huntTimer: 0,
+        huntTargetId: null
       };
     }
 
@@ -1096,14 +1098,12 @@
       const inIce = Math.hypot(snake.x - ICE_ZONE.x, snake.y - ICE_ZONE.y) < ICE_ZONE.r;
       const inSwamp = Math.hypot(snake.x - SWAMP_ZONE.x, snake.y - SWAMP_ZONE.y) < SWAMP_ZONE.r;
 
-      // Velocidade diminui gradualmente conforme o tamanho da cobra cresce
       const sizeFactor = getSizeSpeedFactor(snake);
       let speed = BASE_SPEED * sizeFactor;
       if (inIce) speed *= 1.18;
       if (inSwamp) speed *= 0.84;
 
-      // Curva também acompanha sutilmente o porte da cobra
-      const baseTurn = (snake.isBot ? 4.6 : 5.4) * (0.75 + 0.25 * sizeFactor);
+      const baseTurn = (snake.isBot ? 5.0 : 5.4) * (0.75 + 0.25 * sizeFactor);
       const turnRate = inIce ? baseTurn * 0.62 : baseTurn;
       const diff = normalizeAngle(snake.targetAngle - snake.angle);
       snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), turnRate * dt);
@@ -1199,7 +1199,7 @@
       }
     }
 
-    // ==================== INTELIGÊNCIA ARTIFICIAL TRANQUILA DOS BOTS ====================
+    // ==================== INTELIGÊNCIA ARTIFICIAL OPORTUNISTA DOS BOTS ====================
     function updateBots(dt) {
       syncBotsPopulation();
 
@@ -1210,30 +1210,39 @@
 
       for (const bot of bots) {
         bot.aiTimer -= dt;
+        if (bot.huntCooldown > 0) bot.huntCooldown -= dt;
+        if (bot.huntTimer > 0) {
+          bot.huntTimer -= dt;
+          if (bot.huntTimer <= 0) {
+            bot.huntTargetId = null;
+            // Após um bote rápido, entra em pausa longa antes de tentar atacar de novo
+            bot.huntCooldown = 10 + Math.random() * 6;
+          }
+        }
 
-        // 1. Evasão suave de bordas e obstáculos próximos (sem caçar jogadores)
+        // 1. Evasão de bordas e corpos próximos
         let dangerX = 0;
         let dangerY = 0;
         let dangerCount = 0;
-        const avoidRadius = 85;
+        const avoidRadius = 95;
 
-        const wallDist = 160;
-        if (bot.x < wallDist) { dangerX += (wallDist - bot.x) * 1.8; dangerCount++; }
-        if (bot.x > ARENA_SIZE - wallDist) { dangerX -= (bot.x - (ARENA_SIZE - wallDist)) * 1.8; dangerCount++; }
-        if (bot.y < wallDist) { dangerY += (wallDist - bot.y) * 1.8; dangerCount++; }
-        if (bot.y > ARENA_SIZE - wallDist) { dangerY -= (bot.y - (ARENA_SIZE - wallDist)) * 1.8; dangerCount++; }
+        const wallDist = 170;
+        if (bot.x < wallDist) { dangerX += (wallDist - bot.x) * 2.0; dangerCount++; }
+        if (bot.x > ARENA_SIZE - wallDist) { dangerX -= (bot.x - (ARENA_SIZE - wallDist)) * 2.0; dangerCount++; }
+        if (bot.y < wallDist) { dangerY += (wallDist - bot.y) * 2.0; dangerCount++; }
+        if (bot.y > ARENA_SIZE - wallDist) { dangerY -= (bot.y - (ARENA_SIZE - wallDist)) * 2.0; dangerCount++; }
 
         if (bot.powers.ghost <= 0) {
           for (const other of allSnakes) {
             if (other.id === bot.id || !other.alive || !Array.isArray(other.segments)) continue;
-            const step = other.segments.length > 30 ? 3 : 2;
+            const step = other.segments.length > 35 ? 2 : 1;
             for (let i = 0; i < other.segments.length; i += step) {
               const seg = other.segments[i];
               const dx = bot.x - seg.x;
               const dy = bot.y - seg.y;
               const d = Math.hypot(dx, dy);
               if (d < avoidRadius && d > 0.1) {
-                const weight = ((avoidRadius - d) / avoidRadius) * 140;
+                const weight = ((avoidRadius - d) / avoidRadius) * 170;
                 dangerX += (dx / d) * weight;
                 dangerY += (dy / d) * weight;
                 dangerCount++;
@@ -1241,45 +1250,91 @@
             }
           }
 
-          for (let i = 0; i < orbs.length; i += 3) {
+          for (let i = 0; i < orbs.length; i += 2) {
             const o = orbs[i];
             if (o.type !== 'poison') continue;
             const dx = bot.x - o.x;
             const dy = bot.y - o.y;
             const d = Math.hypot(dx, dy);
-            if (d < 65 && d > 0.1) {
-              dangerX += (dx / d) * 110;
-              dangerY += (dy / d) * 110;
+            if (d < 70 && d > 0.1) {
+              dangerX += (dx / d) * 130;
+              dangerY += (dy / d) * 130;
               dangerCount++;
             }
           }
         }
 
-        // 2. Busca pacífica por orbes na arena
+        // 2. Decisão: coleta principal + botes oportunistas ocasionais (sem perseguir o tempo todo)
         if (bot.aiTimer <= 0) {
-          bot.aiTimer = 0.35 + Math.random() * 0.30;
+          bot.aiTimer = 0.28 + Math.random() * 0.24;
 
-          let bestOrb = null;
-          let bestScoreVal = -Infinity;
-
-          for (let i = 0; i < orbs.length; i += 2) {
-            const o = orbs[i];
-            if (o.type === 'poison') continue;
-            const d = Math.hypot(o.x - bot.x, o.y - bot.y);
-            if (d > 480) continue;
-
-            const priority = o.value * 110 + (o.type !== 'food' ? 160 : 0);
-            const utility = priority - d;
-            if (utility > bestScoreVal) {
-              bestScoreVal = utility;
-              bestOrb = o;
+          let activeVictim = null;
+          if (bot.huntTimer > 0 && bot.huntTargetId) {
+            activeVictim = allSnakes.find(s => s.id === bot.huntTargetId && s.alive) || null;
+            if (!activeVictim || Math.hypot(activeVictim.x - bot.x, activeVictim.y - bot.y) > 250) {
+              bot.huntTimer = 0;
+              bot.huntTargetId = null;
+              bot.huntCooldown = 10 + Math.random() * 5;
+              activeVictim = null;
             }
           }
 
-          if (bestOrb) {
-            bot.targetAngle = Math.atan2(bestOrb.y - bot.y, bestOrb.x - bot.x);
+          // Só avalia um bote curto se estiver fora do cooldown, tiver bom porte (>= 24 pts) e encontrar alguém bem perto (< 190px)
+          if (!activeVictim && bot.huntCooldown <= 0 && bot.score >= 24 && dangerCount === 0) {
+            let nearbyVictim = null;
+            let nearbyDist = 190;
+            for (const other of allSnakes) {
+              if (other.id === bot.id || !other.alive) continue;
+              const d = Math.hypot(other.x - bot.x, other.y - bot.y);
+              if (d < nearbyDist && d > 75) {
+                nearbyDist = d;
+                nearbyVictim = other;
+              }
+            }
+
+            if (nearbyVictim) {
+              if (Math.random() < 0.30) {
+                bot.huntTargetId = nearbyVictim.id;
+                bot.huntTimer = 2.2; // Bote curto de 2.2 segundos
+                activeVictim = nearbyVictim;
+              } else {
+                // Deixa passar desta vez e aguarda alguns segundos antes de reavaliar
+                bot.huntCooldown = 6 + Math.random() * 5;
+              }
+            }
+          }
+
+          if (activeVictim) {
+            const leadDist = 65;
+            const interceptX = Math.max(120, Math.min(ARENA_SIZE - 120, activeVictim.x + Math.cos(activeVictim.angle || 0) * leadDist));
+            const interceptY = Math.max(120, Math.min(ARENA_SIZE - 120, activeVictim.y + Math.sin(activeVictim.angle || 0) * leadDist));
+            bot.targetAngle = Math.atan2(interceptY - bot.y, interceptX - bot.x);
           } else {
-            bot.targetAngle += (Math.random() - 0.5) * 1.1;
+            let bestOrb = null;
+            let bestScoreVal = -Infinity;
+
+            for (let i = 0; i < orbs.length; i += 2) {
+              const o = orbs[i];
+              if (o.type === 'poison') continue;
+              const d = Math.hypot(o.x - bot.x, o.y - bot.y);
+              if (d > 540) continue;
+
+              let priority = o.value * 120;
+              if (o.type !== 'food') priority += 220;
+              if (o.radius >= 8) priority += 150;
+
+              const utility = priority - d;
+              if (utility > bestScoreVal) {
+                bestScoreVal = utility;
+                bestOrb = o;
+              }
+            }
+
+            if (bestOrb) {
+              bot.targetAngle = Math.atan2(bestOrb.y - bot.y, bestOrb.x - bot.x);
+            } else {
+              bot.targetAngle += (Math.random() - 0.5) * 1.0;
+            }
           }
         }
 
