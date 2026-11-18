@@ -104,10 +104,10 @@
             <span class="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-300">🎯 MISSÃO</span>
             <span id="missionTimer" class="text-[9px] sm:text-[10px] font-bold text-indigo-200 bg-indigo-500/30 px-1 py-0.5 rounded">25s</span>
           </div>
-          <div id="missionText" class="text-[10px] sm:text-xs font-bold text-white mt-0.5 leading-tight">Coma 15 orbes</div>
+          <div id="missionText" class="text-[10px] sm:text-xs font-bold text-white mt-0.5 leading-tight">Coma 25 orbes</div>
           <div class="flex items-center justify-between text-[9px] sm:text-[10px] text-indigo-200 mt-0.5 sm:mt-1">
-            <span id="missionProgressText">0 / 15</span>
-            <span id="missionRewardText" class="font-extrabold text-amber-300">+80</span>
+            <span id="missionProgressText">0 / 25</span>
+            <span id="missionRewardText" class="font-extrabold text-amber-300">+40</span>
           </div>
           <div class="w-full h-1 sm:h-1.5 bg-slate-900 rounded-full overflow-hidden mt-1">
             <div id="missionBar" class="h-full bg-gradient-to-r from-indigo-400 to-amber-400 transition-all duration-150" style="width: 0%"></div>
@@ -384,7 +384,7 @@
     let turboOverheated = false;
 
     let globalEvent = null;
-    let nextEventCheck = performance.now() + 18000;
+    let nextEventCheck = performance.now() + 24000;
     let currentMission = null;
 
     let mouseScreenX = window.innerWidth / 2;
@@ -536,7 +536,7 @@
       updateRoomSelection('private');
     }
 
-    // ==================== GERADOR DE ORBES E POWER-UPS ====================
+    // ==================== GERADOR DE ORBES E POWER-UPS (HABILIDADES -50%) ====================
     function createRandomOrb(id, forceType = null) {
       const margin = 140;
       const x = margin + Math.random() * (ARENA_SIZE - margin * 2);
@@ -545,16 +545,17 @@
 
       if (!type) {
         const roll = Math.random();
-        if (roll < 0.028) type = 'magnet';
-        else if (roll < 0.052) type = 'vision';
-        else if (roll < 0.074) type = 'ghost';
-        else if (roll < 0.125) type = 'poison';
+        // Taxa de aparição de habilidades reduzida em 50% (total ~3.7%)
+        if (roll < 0.014) type = 'magnet';
+        else if (roll < 0.026) type = 'vision';
+        else if (roll < 0.037) type = 'ghost';
+        else if (roll < 0.095) type = 'poison';
         else type = 'food';
       }
 
-      if (type === 'magnet') return { id, x, y, type: 'magnet', color: '#f59e0b', value: 4, radius: 13 };
-      if (type === 'vision') return { id, x, y, type: 'vision', color: '#06b6d4', value: 4, radius: 13 };
-      if (type === 'ghost') return { id, x, y, type: 'ghost', color: '#c084fc', value: 4, radius: 13 };
+      if (type === 'magnet') return { id, x, y, type: 'magnet', color: '#f59e0b', value: 3, radius: 13 };
+      if (type === 'vision') return { id, x, y, type: 'vision', color: '#06b6d4', value: 3, radius: 13 };
+      if (type === 'ghost') return { id, x, y, type: 'ghost', color: '#c084fc', value: 3, radius: 13 };
       if (type === 'poison') return { id, x, y, type: 'poison', color: '#a855f7', value: -5, radius: 12 };
 
       const color = ORB_PALETTE[Math.floor(Math.random() * ORB_PALETTE.length)];
@@ -789,13 +790,13 @@
       }
     }
 
-    // ==================== MISSÕES RELÂMPAGO & EVENTOS ====================
+    // ==================== MISSÕES RELÂMPAGO (MAIS DESAFIADORAS E RITMO EQUILIBRADO) ====================
     function assignNewMission() {
       const templates = [
-        { type: 'eat_orbs', text: 'Coma 15 orbes brilhantes', target: 15, reward: 60, duration: 28 },
-        { type: 'swamp_orbs', text: 'Coma 6 orbes no Pântano', target: 6, reward: 85, duration: 32 },
-        { type: 'ice_survive', text: 'Sobreviva 12s na Zona de Gelo', target: 12, reward: 75, duration: 28 },
-        { type: 'collect_power', text: 'Pegue 1 habilidade especial', target: 1, reward: 70, duration: 30 }
+        { type: 'eat_orbs', text: 'Coma 25 orbes brilhantes', target: 25, reward: 35, growth: 3, duration: 25 },
+        { type: 'swamp_orbs', text: 'Coma 12 orbes no Pântano', target: 12, reward: 50, growth: 4, duration: 28 },
+        { type: 'ice_survive', text: 'Sobreviva 20s na Zona de Gelo', target: 20, reward: 45, growth: 4, duration: 26 },
+        { type: 'collect_power', text: 'Pegue 2 habilidades especiais', target: 2, reward: 55, growth: 4, duration: 35 }
       ];
       const tpl = templates[Math.floor(Math.random() * templates.length)];
       currentMission = {
@@ -812,13 +813,13 @@
       if (currentMission.progress >= currentMission.target) {
         if (me && me.alive) {
           me.score += currentMission.reward;
-          growSnake(me, 8);
+          growSnake(me, currentMission.growth || 3);
           playTone(660, 0.14, 'triangle', 0.08);
           setTimeout(() => playTone(880, 0.18, 'triangle', 0.08), 90);
         }
         currentMission = null;
         document.getElementById('missionCard').classList.add('hidden');
-        setTimeout(() => { if (isPlaying) assignNewMission(); }, 8000);
+        setTimeout(() => { if (isPlaying) assignNewMission(); }, 12000);
         return;
       }
       updateMissionUI();
@@ -834,18 +835,18 @@
       document.getElementById('missionTimer').textContent = Math.ceil(currentMission.timeLeft) + 's';
       document.getElementById('missionText').textContent = currentMission.text;
       document.getElementById('missionProgressText').textContent = `${Math.floor(currentMission.progress)} / ${currentMission.target}`;
-      document.getElementById('missionRewardText').textContent = `+${currentMission.reward} pts`;
+      document.getElementById('missionRewardText').textContent = `+${currentMission.reward}`;
       const pct = Math.min(100, (currentMission.progress / currentMission.target) * 100);
       document.getElementById('missionBar').style.width = pct + '%';
     }
 
     function triggerGlobalEvent() {
       const events = [
-        { type: 'gold_rush', title: '⚡ FEBRE DE ORBES', desc: 'Orbes valem o dobro de pontos por 25s!' },
+        { type: 'gold_rush', title: '⚡ FEBRE DE ORBES', desc: 'Orbes valem o dobro de pontos por 20s!' },
         { type: 'super_magnet', title: '🧲 TEMPESTADE MAGNÉTICA', desc: 'Alcance de coleta aumentado para todos!' }
       ];
       const ev = events[Math.floor(Math.random() * events.length)];
-      globalEvent = { ...ev, timeLeft: 25 };
+      globalEvent = { ...ev, timeLeft: 20 };
       document.getElementById('globalEventTitle').textContent = ev.title;
       document.getElementById('globalEventDesc').textContent = ev.desc;
       document.getElementById('globalEventCard').classList.remove('hidden');
@@ -887,7 +888,6 @@
         ? '🌐 Pública'
         : '🔒 ' + currentRoomId.replace('private_', '');
 
-      // Mostra dica de toque e oculta suavemente no celular após 5s para liberar a tela
       controlTipBox.style.opacity = '1';
       if (tipTimeout) clearTimeout(tipTimeout);
       if (window.innerWidth < 640) {
@@ -1044,7 +1044,7 @@
           y: seg.y + (Math.random() - 0.5) * 16,
           type: 'food',
           color: snake.color,
-          value: 3,
+          value: 2,
           radius: 8.5
         });
       }
@@ -1111,7 +1111,7 @@
       }
 
       const baseCollectRadius = 22;
-      const magnetRadius = (snake.powers.magnet > 0 || (globalEvent && globalEvent.type === 'super_magnet')) ? 165 : 0;
+      const magnetRadius = (snake.powers.magnet > 0 || (globalEvent && globalEvent.type === 'super_magnet')) ? 150 : 0;
       let orbsModified = false;
 
       for (let i = orbs.length - 1; i >= 0; i--) {
@@ -1122,8 +1122,8 @@
 
         if (magnetRadius > 0 && orb.type !== 'poison' && dist < magnetRadius && dist > baseCollectRadius) {
           const pullAngle = Math.atan2(dy, dx);
-          orb.x += Math.cos(pullAngle) * 340 * dt;
-          orb.y += Math.sin(pullAngle) * 340 * dt;
+          orb.x += Math.cos(pullAngle) * 320 * dt;
+          orb.y += Math.sin(pullAngle) * 320 * dt;
         }
 
         if (dist < baseCollectRadius + orb.radius) {
@@ -1134,22 +1134,22 @@
               if (!snake.isBot) playTone(190, 0.14, 'sawtooth', 0.06);
             }
           } else if (orb.type === 'magnet') {
-            snake.powers.magnet = 14;
-            snake.score += 5;
+            snake.powers.magnet = 12;
+            snake.score += 3;
             if (!snake.isBot) {
               playTone(540, 0.12, 'triangle', 0.07);
               progressMission('collect_power', 1);
             }
           } else if (orb.type === 'vision') {
-            snake.powers.vision = 14;
-            snake.score += 5;
+            snake.powers.vision = 12;
+            snake.score += 3;
             if (!snake.isBot) {
               playTone(620, 0.12, 'triangle', 0.07);
               progressMission('collect_power', 1);
             }
           } else if (orb.type === 'ghost') {
-            snake.powers.ghost = 10;
-            snake.score += 5;
+            snake.powers.ghost = 9;
+            snake.score += 3;
             if (!snake.isBot) {
               playTone(720, 0.14, 'sine', 0.07);
               progressMission('collect_power', 1);
@@ -1157,7 +1157,8 @@
           } else {
             const mult = (globalEvent && globalEvent.type === 'gold_rush') ? 2 : 1;
             snake.score += orb.value * mult;
-            if (Math.floor(snake.score / 5) > snake.segments.length - INITIAL_LENGTH) {
+            // Crescimento mais gradual (a cada 7 pontos em vez de 5)
+            if (Math.floor(snake.score / 7) > snake.segments.length - INITIAL_LENGTH) {
               growSnake(snake, 1);
             }
             if (!snake.isBot) {
@@ -1242,8 +1243,8 @@
           if (Math.hypot(bot.x - seg.x, bot.y - seg.y) < 14) {
             bot.alive = false;
             me.kills += 1;
-            me.score += 25;
-            growSnake(me, 5);
+            me.score += 18;
+            growSnake(me, 3);
             spawnDeathOrbs(bot);
             bots.splice(b, 1);
             playTone(580, 0.14, 'triangle', 0.08);
@@ -1532,7 +1533,7 @@
           if (globalEvent.timeLeft <= 0) {
             globalEvent = null;
             document.getElementById('globalEventCard').classList.add('hidden');
-            nextEventCheck = now + 35000;
+            nextEventCheck = now + 45000;
           }
         }
 
@@ -1541,7 +1542,7 @@
           if (currentMission.timeLeft <= 0) {
             currentMission = null;
             document.getElementById('missionCard').classList.add('hidden');
-            setTimeout(() => { if (isPlaying) assignNewMission(); }, 7000);
+            setTimeout(() => { if (isPlaying) assignNewMission(); }, 10000);
           } else {
             if (currentMission.type === 'ice_survive' && me && me.alive) {
               if (Math.hypot(me.x - ICE_ZONE.x, me.y - ICE_ZONE.y) < ICE_ZONE.r) {
