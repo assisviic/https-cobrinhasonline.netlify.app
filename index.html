@@ -17,26 +17,93 @@
 
   <canvas id="gameCanvas"></canvas>
 
-  <!-- HUD SUPERIOR (Controlado estritamente por ID e display style) -->
+  <!-- HUD DO JOGO -->
   <div id="hudOverlay" style="display: none;" class="fixed inset-0 pointer-events-none z-20 p-4 flex flex-col justify-between">
     <div class="flex items-start justify-between">
-      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 pointer-events-auto">
+      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 pointer-events-auto shadow-xl">
         <div class="text-xs font-bold text-slate-400">Pontos</div>
         <div id="hudScore" class="text-xl font-black text-emerald-400">10</div>
-        <button id="leaveRoomBtn" class="mt-2 px-3 py-1.5 rounded-xl bg-rose-950 hover:bg-rose-800 text-xs font-bold text-rose-200 transition">Sair para o Lobby</button>
+        <button id="leaveRoomBtn" class="mt-2 px-3 py-1.5 rounded-xl bg-rose-950 hover:bg-rose-800 text-xs font-bold text-rose-200 transition cursor-pointer">Sair para o Lobby</button>
       </div>
     </div>
   </div>
 
-  <!-- LOBBY INICIAL -->
-  <div id="lobbyOverlay" style="display: flex;" class="fixed inset-0 z-30 items-center justify-center p-4 bg-[#070b14]/90">
-    <div class="w-full max-w-[390px] rounded-[26px] bg-[#0e1526] border border-emerald-500/20 p-6 shadow-2xl text-center">
-      <h1 class="text-3xl font-black text-[#7af5d8] mb-2">COBRINHAS</h1>
-      <p class="text-xs text-slate-300 mb-4">Coma orbes e domine a arena!</p>
-      <input id="nicknameInput" type="text" maxlength="16" placeholder="Seu Apelido" class="w-full px-3.5 py-3 rounded-xl bg-[#101829] border border-slate-700 text-white mb-4 text-center focus:outline-none focus:border-emerald-400" />
-      <button id="startGameBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wide shadow-lg transition">
+  <!-- TELA INICIAL / LOBBY ORIGINAL COMPLETA -->
+  <div id="lobbyOverlay" style="display: flex;" class="fixed inset-0 z-30 items-center justify-center p-3 sm:p-4 bg-[#070b14]/95 overflow-y-auto">
+    <div class="w-full max-w-[390px] my-auto rounded-[26px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-4 sm:p-6 shadow-2xl text-slate-100">
+      
+      <!-- Selo Topo -->
+      <div class="flex justify-center mb-2 sm:mb-3">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-[10px] sm:text-[11px] font-extrabold tracking-wider text-emerald-300 uppercase">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+          ARENA MULTIPLAYER ONLINE
+        </div>
+      </div>
+
+      <!-- Título -->
+      <h1 class="text-center text-[30px] sm:text-[36px] leading-none font-black tracking-wide text-[#7af5d8] mb-1.5 sm:mb-2">
+        COBRINHAS
+      </h1>
+      <p class="text-center text-xs sm:text-[13px] leading-snug text-slate-300/90 mb-3.5 sm:mb-5 px-1">
+        Coma orbes brilhantes, corte o caminho de outros jogadores e domine o ranking!
+      </p>
+
+      <!-- Apelido -->
+      <div class="mb-3 sm:mb-4">
+        <label for="nicknameInput" class="block text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1">
+          SEU APELIDO NA ARENA
+        </label>
+        <input
+          id="nicknameInput"
+          type="text"
+          maxlength="16"
+          placeholder="Ex: CobraRei, Relâmpago..."
+          class="w-full px-3.5 py-2.5 sm:py-3 rounded-xl bg-[#101829] border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 transition"
+        />
+      </div>
+
+      <!-- Seletor de Cores -->
+      <div class="mb-3 sm:mb-3.5">
+        <span class="block text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1">
+          ESCOLHA A COR DA SUA COBRINHA
+        </span>
+        <div id="colorPicker" class="flex flex-wrap justify-center items-center gap-2 p-2.5 rounded-2xl bg-[#0e1525]/90 border border-slate-800/90">
+          <button type="button" data-color="#10b981" class="color-swatch w-9 h-9 rounded-full bg-[#10b981] ring-[3px] ring-white shadow-md transition transform scale-105 cursor-pointer"></button>
+          <button type="button" data-color="#3b82f6" class="color-swatch w-8 h-8 rounded-full bg-[#3b82f6] opacity-90 hover:opacity-100 transition cursor-pointer"></button>
+          <button type="button" data-color="#ef4444" class="color-swatch w-8 h-8 rounded-full bg-[#ef4444] opacity-90 hover:opacity-100 transition cursor-pointer"></button>
+          <button type="button" data-color="#a855f7" class="color-swatch w-8 h-8 rounded-full bg-[#a855f7] opacity-90 hover:opacity-100 transition cursor-pointer"></button>
+          <button type="button" data-color="#f59e0b" class="color-swatch w-8 h-8 rounded-full bg-[#f59e0b] opacity-90 hover:opacity-100 transition cursor-pointer"></button>
+          <button type="button" data-color="#06b6d4" class="color-swatch w-8 h-8 rounded-full bg-[#06b6d4] opacity-90 hover:opacity-100 transition cursor-pointer"></button>
+          <button type="button" data-color="#ec4899" class="color-swatch w-8 h-8 rounded-full bg-[#ec4899] opacity-90 hover:opacity-100 transition cursor-pointer"></button>
+        </div>
+      </div>
+
+      <!-- Estampas / Skins -->
+      <div id="skinPicker" class="grid grid-cols-2 gap-2 mb-3 sm:mb-4">
+        <button type="button" data-skin="solid" class="skin-btn py-2 px-2.5 rounded-xl text-xs font-bold bg-[#13292a] border border-emerald-400/70 text-white transition cursor-pointer">Clássico Sólido</button>
+        <button type="button" data-skin="striped" class="skin-btn py-2 px-2.5 rounded-xl text-xs font-bold bg-[#111827] border border-slate-700/80 text-slate-200 transition cursor-pointer">Listrado</button>
+        <button type="button" data-skin="neon" class="skin-btn py-2 px-2.5 rounded-xl text-xs font-bold bg-[#111827] border border-slate-700/80 text-slate-200 transition cursor-pointer">Neon Pulse</button>
+        <button type="button" data-skin="rainbow" class="skin-btn py-2 px-2.5 rounded-xl text-xs font-bold bg-[#111827] border border-slate-700/80 text-slate-200 transition cursor-pointer">Arco-Íris</button>
+        <button type="button" data-skin="brasil" class="skin-btn col-span-2 py-2 px-2.5 rounded-xl text-xs font-bold bg-[#111827] border border-slate-700/80 text-slate-200 transition cursor-pointer">Brasil</button>
+      </div>
+
+      <!-- Modo de Sala -->
+      <div class="p-3 rounded-2xl bg-[#0d1424] border border-slate-800/90 mb-3">
+        <div class="flex items-center justify-between gap-1.5 mb-2">
+          <span class="text-[10px] font-extrabold tracking-wider text-slate-200 uppercase">MODO DE SALA</span>
+          <span id="lobbyRoomBadge" class="px-2 py-0.5 rounded-full bg-[#102e26] border border-emerald-500/30 text-[10px] font-bold text-emerald-300">🌐 Arena Pública</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="publicRoomBtn" type="button" class="py-2 px-2.5 rounded-xl text-xs font-extrabold bg-[#10b981] text-slate-950 transition cursor-pointer">Arena Pública</button>
+          <button id="privateRoomBtn" type="button" class="py-2 px-2.5 rounded-xl text-xs font-bold bg-[#182132] text-slate-200 border border-slate-700 transition cursor-pointer">Sala Privada 🔒</button>
+        </div>
+      </div>
+
+      <!-- Botão Entrar -->
+      <button id="startGameBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wide shadow-lg transition cursor-pointer">
         ENTRAR NA SALA
       </button>
+
     </div>
   </div>
 
@@ -50,8 +117,28 @@
     const nicknameInput = document.getElementById('nicknameInput');
 
     let isPlaying = false;
-    let me = { x: 1600, y: 1600, score: 10, segments: [] };
-    let orbs = [];
+    let selectedColor = '#10b981';
+    let selectedSkin = 'solid';
+
+    // Seleção de cores
+    document.querySelectorAll('.color-swatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedColor = btn.dataset.color;
+        document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('ring-[3px]', 'ring-white', 'scale-105'));
+        btn.classList.add('ring-[3px]', 'ring-white', 'scale-105');
+      });
+    });
+
+    // Seleção de skins
+    document.querySelectorAll('.skin-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedSkin = btn.dataset.skin;
+        document.querySelectorAll('.skin-btn').forEach(b => {
+          b.className = 'skin-btn ' + (b.dataset.skin === 'brasil' ? 'col-span-2 ' : '') + 'py-2 px-2.5 rounded-xl text-xs font-bold bg-[#111827] border border-slate-700 text-slate-200 transition cursor-pointer';
+        });
+        btn.className = 'skin-btn ' + (btn.dataset.skin === 'brasil' ? 'col-span-2 ' : '') + 'py-2 px-2.5 rounded-xl text-xs font-bold bg-[#13292a] border border-emerald-400 text-white transition cursor-pointer';
+      });
+    });
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -60,16 +147,7 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    for(let i=0; i<120; i++) {
-      orbs.push({ x: Math.random() * 3200, y: Math.random() * 3200, color: '#10b981', radius: 6 });
-    }
-
     startGameBtn.addEventListener('click', () => {
-      me.x = 1600; me.y = 1600; me.score = 10;
-      me.segments = [];
-      for(let i=0; i<15; i++) me.segments.push({x: 1600 - i*10, y: 1600});
-
-      // Esconde o lobby e ativa o HUD e o jogo de forma limpa
       lobbyOverlay.style.display = 'none';
       hudOverlay.style.display = 'flex';
       isPlaying = true;
@@ -77,46 +155,15 @@
 
     leaveRoomBtn.addEventListener('click', () => {
       isPlaying = false;
-      // Esconde o HUD e força o lobby a reaparecer centralizado
       hudOverlay.style.display = 'none';
       lobbyOverlay.style.display = 'flex';
-    });
-
-    window.addEventListener('mousemove', (e) => {
-      if(!isPlaying) return;
-      const angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
-      me.x += Math.cos(angle) * 3.5;
-      me.y += Math.sin(angle) * 3.5;
     });
 
     function gameLoop() {
       ctx.fillStyle = '#060a12';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      if (isPlaying) {
-        ctx.save();
-        ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
-
-        ctx.strokeStyle = '#11192c';
-        ctx.lineWidth = 1;
-        for (let x = 0; x <= 3200; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 3200); ctx.stroke(); }
-        for (let y = 0; y <= 3200; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(3200, y); ctx.stroke(); }
-
-        for (let o of orbs) {
-          ctx.beginPath(); ctx.arc(o.x, o.y, o.radius, 0, Math.PI*2);
-          ctx.fillStyle = o.color; ctx.fill();
-        }
-
-        ctx.beginPath(); ctx.arc(me.x, me.y, 12, 0, Math.PI*2);
-        ctx.fillStyle = '#10b981'; ctx.fill();
-
-        ctx.restore();
-        document.getElementById('hudScore').textContent = Math.round(me.score);
-      }
-
       requestAnimationFrame(gameLoop);
     }
-
     requestAnimationFrame(gameLoop);
   </script>
 </body>
