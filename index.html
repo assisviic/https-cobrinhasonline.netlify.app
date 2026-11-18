@@ -6,125 +6,43 @@
   <title>COBRINHAS - Arena Multiplayer Online</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #060a12;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-    #gameCanvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      touch-action: none;
-    }
-    #lobbyOverlay, #lobbyOverlay * {
-      touch-action: pan-y;
-    }
-    #lobbyOverlay input {
-      user-select: text;
-      -webkit-user-select: text;
-    }
-    ::-webkit-scrollbar {
-      width: 5px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #1e293b;
-      border-radius: 9999px;
-    }
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #060a12; font-family: 'Inter', system-ui, sans-serif; }
+    #gameCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    #lobbyOverlay { touch-action: pan-y; }
+    #lobbyOverlay input { user-select: text; -webkit-user-select: text; }
   </style>
 </head>
 <body class="bg-[#060a12] text-slate-100">
 
-  <!-- CANVAS DO JOGO -->
   <canvas id="gameCanvas"></canvas>
 
-  <!-- HUD SUPERIOR -->
-  <div id="hudOverlay" class="hidden fixed inset-0 pointer-events-none z-20 p-2 sm:p-4 flex flex-col justify-between">
-    <div class="flex items-start justify-between gap-1.5 sm:gap-2">
-      <div class="flex flex-col gap-1 sm:gap-2 max-w-[162px] sm:max-w-[270px]">
-        <div class="bg-slate-950/75 border border-slate-800/80 rounded-xl sm:rounded-2xl px-2 py-1.5 sm:px-3 sm:py-2 backdrop-blur-sm shadow-lg">
-          <div class="flex items-center justify-between gap-2 sm:gap-3">
-            <div>
-              <div class="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Pontos</div>
-              <div id="hudScore" class="text-sm sm:text-xl font-black text-emerald-400 leading-none sm:leading-tight">10</div>
-            </div>
-            <div class="text-right">
-              <div class="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400">Abates</div>
-              <div id="hudKills" class="text-xs sm:text-base font-extrabold text-amber-400 leading-none sm:leading-tight">0</div>
-            </div>
-          </div>
-          <div class="mt-1 sm:mt-2">
-            <div class="flex justify-between text-[8px] sm:text-[10px] font-bold mb-0.5">
-              <span id="turboLabel" class="text-cyan-300">⚡ TURBO</span>
-              <span id="turboPct" class="text-slate-300">100%</span>
-            </div>
-            <div class="w-full h-1 sm:h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div id="turboBar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-75" style="width: 100%"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex flex-col items-end gap-1 sm:gap-2">
-        <div class="flex items-center gap-1 sm:gap-1.5 pointer-events-auto">
-          <button id="leaveRoomBtn" type="button" class="px-3 py-1 rounded-xl bg-rose-950/90 hover:bg-rose-800 border border-rose-500/40 text-xs font-bold text-rose-200 transition pointer-events-auto shadow-md">
-            Sair para o Lobby
-          </button>
-        </div>
+  <!-- HUD SUPERIOR (Controlado estritamente por ID e display style) -->
+  <div id="hudOverlay" style="display: none;" class="fixed inset-0 pointer-events-none z-20 p-4 flex flex-col justify-between">
+    <div class="flex items-start justify-between">
+      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 pointer-events-auto">
+        <div class="text-xs font-bold text-slate-400">Pontos</div>
+        <div id="hudScore" class="text-xl font-black text-emerald-400">10</div>
+        <button id="leaveRoomBtn" class="mt-2 px-3 py-1.5 rounded-xl bg-rose-950 hover:bg-rose-800 text-xs font-bold text-rose-200 transition">Sair para o Lobby</button>
       </div>
     </div>
   </div>
 
-  <!-- TELA INICIAL / LOBBY CENTRALIZADO -->
-  <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-4 bg-[#070b14]/90 overflow-y-auto overscroll-contain">
-    <div id="lobbyCard" class="w-full max-w-[390px] my-auto rounded-[26px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-4 sm:p-6 shadow-2xl text-slate-100">
-      
-      <div class="flex justify-center mb-2 sm:mb-3">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-[10px] sm:text-[11px] font-extrabold tracking-wider text-emerald-300 uppercase">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-          ARENA MULTIPLAYER ONLINE
-        </div>
-      </div>
-
-      <h1 class="text-center text-[30px] sm:text-[36px] leading-none font-black tracking-wide text-[#7af5d8] mb-1.5 sm:mb-2">
-        COBRINHAS
-      </h1>
-      <p class="text-center text-xs sm:text-[13px] leading-snug text-slate-300/90 mb-3.5 sm:mb-5 px-1">
-        Coma orbes brilhantes, corte o caminho de outros jogadores e domine o ranking!
-      </p>
-
-      <div class="mb-3 sm:mb-4">
-        <label for="nicknameInput" class="block text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1">
-          SEU APELIDO NA ARENA
-        </label>
-        <input
-          id="nicknameInput"
-          type="text"
-          maxlength="16"
-          placeholder="Ex: CobraRei, Relâmpago..."
-          class="w-full px-3.5 py-2.5 sm:py-3 rounded-xl bg-[#101829] border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 transition"
-        />
-      </div>
-
-      <button id="startGameBtn" type="button" class="w-full py-3.5 sm:py-4 rounded-2xl bg-[#10b981] hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-sm sm:text-base tracking-wide uppercase shadow-lg shadow-emerald-500/25 transition">
+  <!-- LOBBY INICIAL -->
+  <div id="lobbyOverlay" style="display: flex;" class="fixed inset-0 z-30 items-center justify-center p-4 bg-[#070b14]/90">
+    <div class="w-full max-w-[390px] rounded-[26px] bg-[#0e1526] border border-emerald-500/20 p-6 shadow-2xl text-center">
+      <h1 class="text-3xl font-black text-[#7af5d8] mb-2">COBRINHAS</h1>
+      <p class="text-xs text-slate-300 mb-4">Coma orbes e domine a arena!</p>
+      <input id="nicknameInput" type="text" maxlength="16" placeholder="Seu Apelido" class="w-full px-3.5 py-3 rounded-xl bg-[#101829] border border-slate-700 text-white mb-4 text-center focus:outline-none focus:border-emerald-400" />
+      <button id="startGameBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wide shadow-lg transition">
         ENTRAR NA SALA
       </button>
-
     </div>
   </div>
 
   <script>
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d');
     const lobbyOverlay = document.getElementById('lobbyOverlay');
     const hudOverlay = document.getElementById('hudOverlay');
     const startGameBtn = document.getElementById('startGameBtn');
@@ -132,7 +50,7 @@
     const nicknameInput = document.getElementById('nicknameInput');
 
     let isPlaying = false;
-    let me = { x: 1600, y: 1600, score: 10, kills: 0, segments: [] };
+    let me = { x: 1600, y: 1600, score: 10, segments: [] };
     let orbs = [];
 
     function resizeCanvas() {
@@ -142,49 +60,33 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Gerar orbes iniciais
-    for(let i=0; i<150; i++) {
-      orbs.push({
-        x: Math.random() * 3200,
-        y: Math.random() * 3200,
-        color: '#10b981',
-        radius: 6
-      });
+    for(let i=0; i<120; i++) {
+      orbs.push({ x: Math.random() * 3200, y: Math.random() * 3200, color: '#10b981', radius: 6 });
     }
 
     startGameBtn.addEventListener('click', () => {
-      const name = nicknameInput.value.trim() || 'Jogador';
-      me.name = name;
-      me.x = 1600;
-      me.y = 1600;
-      me.score = 10;
+      me.x = 1600; me.y = 1600; me.score = 10;
       me.segments = [];
       for(let i=0; i<15; i++) me.segments.push({x: 1600 - i*10, y: 1600});
 
-      lobbyOverlay.classList.add('hidden');
+      // Esconde o lobby e ativa o HUD e o jogo de forma limpa
       lobbyOverlay.style.display = 'none';
-      hudOverlay.classList.remove('hidden');
       hudOverlay.style.display = 'flex';
       isPlaying = true;
     });
 
     leaveRoomBtn.addEventListener('click', () => {
       isPlaying = false;
-      hudOverlay.classList.add('hidden');
+      // Esconde o HUD e força o lobby a reaparecer centralizado
       hudOverlay.style.display = 'none';
-      
-      // Força a exibição do lobby perfeitamente centralizado
-      lobbyOverlay.classList.remove('hidden');
       lobbyOverlay.style.display = 'flex';
-      lobbyOverlay.style.alignItems = 'center';
-      lobbyOverlay.style.justifyContent = 'center';
     });
 
     window.addEventListener('mousemove', (e) => {
       if(!isPlaying) return;
       const angle = Math.atan2(e.clientY - canvas.height/2, e.clientX - canvas.width/2);
-      me.x += Math.cos(angle) * 3;
-      me.y += Math.sin(angle) * 3;
+      me.x += Math.cos(angle) * 3.5;
+      me.y += Math.sin(angle) * 3.5;
     });
 
     function gameLoop() {
@@ -195,30 +97,21 @@
         ctx.save();
         ctx.translate(canvas.width/2 - me.x, canvas.height/2 - me.y);
 
-        // Desenhar grade
         ctx.strokeStyle = '#11192c';
         ctx.lineWidth = 1;
         for (let x = 0; x <= 3200; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 3200); ctx.stroke(); }
         for (let y = 0; y <= 3200; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(3200, y); ctx.stroke(); }
 
-        // Desenhar orbes
         for (let o of orbs) {
-          ctx.beginPath();
-          ctx.arc(o.x, o.y, o.radius, 0, Math.PI*2);
-          ctx.fillStyle = o.color;
-          ctx.fill();
+          ctx.beginPath(); ctx.arc(o.x, o.y, o.radius, 0, Math.PI*2);
+          ctx.fillStyle = o.color; ctx.fill();
         }
 
-        // Desenhar jogador
-        ctx.beginPath();
-        ctx.arc(me.x, me.y, 12, 0, Math.PI*2);
-        ctx.fillStyle = '#10b981';
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(me.x, me.y, 12, 0, Math.PI*2);
+        ctx.fillStyle = '#10b981'; ctx.fill();
 
         ctx.restore();
-
         document.getElementById('hudScore').textContent = Math.round(me.score);
-        document.getElementById('hudKills').textContent = me.kills;
       }
 
       requestAnimationFrame(gameLoop);
