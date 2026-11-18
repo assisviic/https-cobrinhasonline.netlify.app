@@ -81,7 +81,7 @@
           <div id="activePowersHud" class="flex flex-wrap gap-1 mt-1 sm:mt-2 empty:hidden"></div>
         </div>
 
-        <!-- Banner Evento Relâmpago Global (Ultra-compacto no mobile) -->
+        <!-- Banner Evento Relâmpago Global -->
         <div id="globalEventCard" class="hidden bg-amber-950/80 border border-amber-500/40 rounded-lg sm:rounded-xl px-2 py-1 sm:px-3 sm:py-2 shadow-lg">
           <div class="flex items-center justify-between gap-1.5">
             <span id="globalEventTitle" class="text-[9px] sm:text-[11px] font-black text-amber-300 uppercase tracking-wide truncate">⚡ EVENTO</span>
@@ -90,7 +90,7 @@
           <p id="globalEventDesc" class="text-[9px] sm:text-[11px] text-amber-100/90 mt-0.5 leading-tight line-clamp-1 sm:line-clamp-none"></p>
         </div>
 
-        <!-- Card Missão Relâmpago Individual (Ultra-compacto no mobile) -->
+        <!-- Card Missão Relâmpago Individual -->
         <div id="missionCard" class="hidden bg-indigo-950/80 border border-indigo-400/40 rounded-lg sm:rounded-xl px-2 py-1 sm:px-3 sm:py-2 shadow-lg">
           <div class="flex items-center justify-between gap-1">
             <span class="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-300">🎯 MISSÃO</span>
@@ -121,7 +121,7 @@
           </button>
         </div>
 
-        <!-- Ranking Compacto (Top 3 no celular, Top 5 no PC) -->
+        <!-- Ranking Compacto -->
         <div class="bg-slate-950/75 border border-slate-800/80 rounded-xl sm:rounded-2xl px-2 py-1.5 sm:p-2.5 w-[114px] sm:w-[190px] backdrop-blur-sm shadow-lg">
           <div class="flex items-center justify-between mb-0.5 sm:mb-1.5">
             <span class="text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-amber-400">🏆 Top</span>
@@ -147,7 +147,7 @@
   </div>
 
   <!-- TELA DE GAME OVER -->
-  <div id="gameOverOverlay" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
+  <div id="gameOverOverlay" class="hidden fixed inset-0 z-40 items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
     <div class="w-full max-w-[360px] rounded-3xl bg-[#0e1526] border border-rose-500/30 p-6 text-center shadow-2xl">
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-3xl mb-3">
         💥
@@ -172,7 +172,7 @@
     </div>
   </div>
 
-  <!-- TELA INICIAL / LOBBY (COM SCROLL LIBERADO NO CELULAR) -->
+  <!-- TELA INICIAL / LOBBY -->
   <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-[#070b14]/90 overflow-y-auto overscroll-contain">
     <div id="lobbyCard" class="w-full max-w-[390px] my-2 sm:my-auto rounded-[26px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-4 sm:p-6 shadow-2xl text-slate-100">
 
@@ -306,7 +306,6 @@
       onSnapshot
     } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-    // Credenciais do projeto Firebase: Servidor de Cobrinhas
     const firebaseConfig = {
       apiKey: "AIzaSyBQ7A9l81CbX3Bzn-wTkAVQBKci8251UNU",
       authDomain: "servidor-de-cobrinhas.firebaseapp.com",
@@ -321,7 +320,6 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // ==================== CONFIGURAÇÕES DA ARENA ====================
     const ARENA_SIZE = 3200;
     const MAX_ROOM_PLAYERS = 10;
     const TARGET_TOTAL_SNAKES = 8;
@@ -338,7 +336,6 @@
       { id: 'B', x: 2550, y: 650, targetX: 650, targetY: 2550, color: '#c084fc' }
     ];
 
-    // ==================== ESTADO GLOBAL ====================
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
     const miniCanvas = document.getElementById('minimapCanvas');
@@ -378,7 +375,6 @@
     let mouseScreenY = window.innerHeight / 2;
     let lastTapTime = 0;
 
-    // ==================== ÁUDIO SINTÉTICO LEVE ====================
     let audioCtx = null;
     function playTone(freq, duration = 0.08, type = 'sine', vol = 0.05) {
       try {
@@ -397,7 +393,6 @@
       } catch (_) {}
     }
 
-    // ==================== UI & LOBBY ====================
     const connDot = document.getElementById('connDot');
     const connTitle = document.getElementById('connTitle');
     const connSub = document.getElementById('connSub');
@@ -469,9 +464,6 @@
         }
         currentRoomId = 'private_' + roomCodeInput.value.trim().toUpperCase();
         lobbyRoomBadge.textContent = '🔒 ' + roomCodeInput.value.trim().toUpperCase();
-        setTimeout(() => {
-          startGameBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 60);
       }
       subscribeToRoom(currentRoomId);
     }
@@ -508,7 +500,6 @@
       updateRoomSelection('private');
     }
 
-    // ==================== GERADOR DE ORBES E POWER-UPS ====================
     function createRandomOrb(id, forceType = null) {
       const margin = 140;
       const x = margin + Math.random() * (ARENA_SIZE - margin * 2);
@@ -549,7 +540,6 @@
       return list;
     }
 
-    // ==================== CONEXÃO FIREBASE + INTERPOLAÇÃO SUAVE ====================
     function normalizeAngle(a) {
       while (a > Math.PI) a -= Math.PI * 2;
       while (a < -Math.PI) a += Math.PI * 2;
@@ -709,7 +699,6 @@
       setConnectionUI('warn', 'Modo Local Ativo!', 'Jogue agora mesmo com bots.');
     });
 
-    // ==================== CRIAÇÃO DE COBRINHAS E BOTS ====================
     const BOT_NAMES = ['Víbora', 'Relâmpago', 'Sombra', 'CobraRei', 'Titan', 'Naja', 'Fúria', 'Estrela', 'Vortex', 'Zika'];
 
     function createSnakeEntity(id, name, color, skin, isBot = false) {
@@ -763,7 +752,6 @@
       }
     }
 
-    // ==================== MISSÕES RELÂMPAGO & EVENTOS ====================
     function assignNewMission() {
       const templates = [
         { type: 'eat_orbs', text: 'Coma 15 orbes', target: 15, reward: 60, duration: 28 },
@@ -835,7 +823,6 @@
       if (cardEl) cardEl.classList.remove('hidden');
     }
 
-    // ==================== INICIAR / ENTRAR NA PARTIDA ====================
     function startMatch() {
       if (roomMode === 'private') {
         const cleanCode = roomCodeInput.value.trim().toUpperCase();
@@ -892,7 +879,7 @@
     startGameBtn.addEventListener('click', startMatch);
     document.getElementById('respawnBtn').addEventListener('click', startMatch);
 
-    // BOTÃO SAIR CORRIGIDO COM EXIBIÇÃO FORÇADA DO LOBBY
+    // BOTÃO SAIR CORRIGIDO: Força exibição do lobby com flex
     document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
       isPlaying = false;
       if (me) me.alive = false;
@@ -930,7 +917,6 @@
     });
     document.getElementById('toggleGfxBtn').textContent = lowGraphics ? '⚡ Leve' : '✨ HD';
 
-    // ==================== SINCRONIZAÇÃO EM NUVEM ====================
     async function syncPlayerToCloud(force = false, activeBoost = false) {
       if (!isOnlineConnected || !currentUser || !me) return;
       const now = Date.now();
@@ -991,7 +977,6 @@
       removePlayerFromCloud();
     });
 
-    // ==================== CONTROLES MOUSE / TECLADO / TOUCH ====================
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -1041,7 +1026,6 @@
       isBoosting = false;
     });
 
-    // ==================== FÍSICA E MECÂNICAS ====================
     function growSnake(snake, amount) {
       const tail = snake.segments[snake.segments.length - 1];
       for (let i = 0; i < amount; i++) {
@@ -1276,7 +1260,6 @@
       }
     }
 
-    // ==================== RENDERIZAÇÃO ====================
     function getSegmentColor(snake, index) {
       if (snake.skin === 'striped') {
         return index % 4 < 2 ? snake.color : '#f8fafc';
@@ -1536,7 +1519,6 @@
       }
     }
 
-    // ==================== LOOP PRINCIPAL ====================
     function gameLoop(now) {
       const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
