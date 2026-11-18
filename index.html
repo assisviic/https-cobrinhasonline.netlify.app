@@ -59,7 +59,7 @@
 
     <!-- Linha Topo: Missão / Evento + Ranking + Controles -->
     <div class="flex items-start justify-between gap-1.5 sm:gap-2">
-      <!-- Esquerda: Pontuação, Turbo, Habilidades Ativas e Missão Relâmpago -->
+      <!-- Esquerda: Pontuação, Habilidades Ativas e Missão Relâmpago -->
       <div class="flex flex-col gap-1.5 sm:gap-2 max-w-[156px] sm:max-w-[270px]">
         <!-- Status e Pontos -->
         <div class="bg-slate-950/60 sm:bg-slate-950/80 border border-slate-800/70 sm:border-slate-800/90 rounded-xl sm:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 backdrop-blur-[2px] sm:backdrop-blur-sm shadow-lg">
@@ -74,15 +74,10 @@
             </div>
           </div>
 
-          <!-- Barra de Turbo / Temperatura -->
-          <div class="mt-1 sm:mt-2">
-            <div class="flex justify-between text-[8px] sm:text-[10px] font-bold mb-0.5">
-              <span id="turboLabel" class="text-cyan-300">⚡ TURBO</span>
-              <span id="turboPct" class="text-slate-300">100%</span>
-            </div>
-            <div class="w-full h-1 sm:h-1.5 bg-slate-800/90 rounded-full overflow-hidden">
-              <div id="turboBar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-75" style="width: 100%"></div>
-            </div>
+          <!-- Indicador de Agilidade / Peso pelo Tamanho -->
+          <div class="mt-1 sm:mt-1.5 flex items-center justify-between text-[8px] sm:text-[10px] font-bold text-slate-400 border-t border-slate-800/80 pt-1">
+            <span>Agilidade</span>
+            <span id="hudSpeedPct" class="text-cyan-300">100%</span>
           </div>
 
           <!-- Power-ups Ativos -->
@@ -143,8 +138,8 @@
     <!-- Rodapé: Dica de Controle + Radar Minimapa -->
     <div class="flex items-end justify-between">
       <div id="controlTipBox" class="bg-slate-950/65 sm:bg-slate-950/75 border border-slate-800/70 rounded-xl px-2 py-1 sm:px-2.5 sm:py-1.5 text-[9px] sm:text-xs text-slate-300 transition-opacity duration-500">
-        <span class="hidden sm:inline">🖱️ Mova o mouse para guiar • Segure <b>Clique / Espaço</b> para Turbo</span>
-        <span class="sm:hidden">👆 Arraste • <b>2 toques</b> = Turbo</span>
+        <span class="hidden sm:inline">🖱️ Mova o mouse para guiar sua cobrinha</span>
+        <span class="sm:hidden">👆 Arraste o dedo na tela para guiar</span>
       </div>
 
       <!-- Minimapa -->
@@ -337,8 +332,8 @@
     const ARENA_SIZE = 3200;
     const MAX_ROOM_PLAYERS = 10;
     const TARGET_TOTAL_SNAKES = 8;
-    const BASE_SPEED = 235;
-    const BOOST_SPEED = 415;
+    const BASE_SPEED = 240;
+    const MIN_SPEED_FACTOR = 0.58; // Velocidade mínima quando muito grande (58%)
     const SEGMENT_SPACING = 6.5;
     const INITIAL_LENGTH = 18;
     const ORB_PALETTE = ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf'];
@@ -385,10 +380,6 @@
     let portalCooldown = 0;
     let spawnProtection = 0;
 
-    let isBoosting = false;
-    let turboEnergy = 100;
-    let turboOverheated = false;
-
     let globalEvent = null;
     let nextEventCheck = performance.now() + 30000;
     let currentMission = null;
@@ -396,7 +387,6 @@
 
     let mouseScreenX = window.innerWidth / 2;
     let mouseScreenY = window.innerHeight / 2;
-    let lastTapTime = 0;
     let tipTimeout = null;
 
     // ==================== ÁUDIO SINTÉTICO LEVE ====================
@@ -416,6 +406,14 @@
         osc.start();
         osc.stop(audioCtx.currentTime + duration);
       } catch (_) {}
+    }
+
+    // ==================== CÁLCULO DE FATOR DE VELOCIDADE POR TAMANHO ====================
+    function getSizeSpeedFactor(snake) {
+      if (!snake || !Array.isArray(snake.segments)) return 1;
+      const extraSegments = Math.max(0, snake.segments.length - INITIAL_LENGTH);
+      // Perde cerca de 0.35% de velocidade a cada segmento extra até o limite mínimo de 58%
+      return Math.max(MIN_SPEED_FACTOR, 1 - extraSegments * 0.0035);
     }
 
     // ==================== UI & LOBBY ====================
@@ -479,7 +477,6 @@
 
     function showLobbyScreen() {
       isPlaying = false;
-      isBoosting = false;
       if (missionTimerHandle) {
         clearTimeout(missionTimerHandle);
         missionTimerHandle = null;
@@ -668,7 +665,6 @@
               existing.score = data.score;
               existing.kills = data.kills;
               existing.ghost = data.ghost;
-              existing.boosting = Boolean(data.boosting);
               existing.lastSeen = data.lastSeen;
 
               const jumpDist = Math.hypot(data.x - existing.x, data.y - existing.y);
@@ -727,7 +723,7 @@
         if (!rp.alive) return;
 
         const packetAge = Math.min(0.22, (now - (rp.lastPacketTime || now)) / 1000);
-        const estSpeed = rp.boosting ? BOOST_SPEED : BASE_SPEED;
+        const estSpeed = BASE_SPEED * getSizeSpeedFactor(rp);
         const predictedX = rp.targetX + Math.cos(rp.targetAngle) * estSpeed * packetAge * 0.65;
         const predictedY = rp.targetY + Math.sin(rp.targetAngle) * estSpeed * packetAge * 0.65;
 
@@ -804,9 +800,7 @@
         kills: 0,
         segments,
         powers: { magnet: 0, vision: 0, ghost: 0 },
-        aiTimer: 0,
-        botEnergy: 100,
-        isBoosting: false
+        aiTimer: 0
       };
     }
 
@@ -920,9 +914,6 @@
         false
       );
 
-      turboEnergy = 100;
-      turboOverheated = false;
-      isBoosting = false;
       spawnProtection = 1.8;
 
       if (orbs.length === 0) orbs = generateInitialOrbs(230);
@@ -947,7 +938,7 @@
       currentMission = null;
       document.getElementById('missionCard').classList.add('hidden');
       scheduleNextMission(MISSION_INTERVAL_MS);
-      syncPlayerToCloud(true, false);
+      syncPlayerToCloud(true);
     }
 
     startGameBtn.addEventListener('click', startMatch);
@@ -966,7 +957,7 @@
     document.getElementById('toggleGfxBtn').textContent = lowGraphics ? '⚡ Leve' : '✨ HD';
 
     // ==================== SINCRONIZAÇÃO EM NUVEM (85ms OTIMIZADO) ====================
-    async function syncPlayerToCloud(force = false, activeBoost = false) {
+    async function syncPlayerToCloud(force = false) {
       if (!isOnlineConnected || !currentUser || !me) return;
       const now = Date.now();
       if (!force && now - lastNetSyncTime < 85) return;
@@ -990,7 +981,6 @@
           x: Math.round(me.x),
           y: Math.round(me.y),
           angle: Number(me.angle.toFixed(2)),
-          boosting: activeBoost,
           score: Math.round(me.score),
           kills: me.kills,
           ghost: me.powers.ghost > 0,
@@ -1024,7 +1014,7 @@
       removePlayerFromCloud();
     });
 
-    // ==================== CONTROLES MOUSE / TECLADO / TOUCH ====================
+    // ==================== CONTROLES MOUSE / TOUCH ====================
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -1037,31 +1027,11 @@
       mouseScreenY = e.clientY;
     });
 
-    window.addEventListener('mousedown', (e) => {
-      if (e.target.closest('button, input')) return;
-      if (e.button === 0 && isPlaying) isBoosting = true;
-    });
-    window.addEventListener('mouseup', () => {
-      isBoosting = false;
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && isPlaying) isBoosting = true;
-    });
-    window.addEventListener('keyup', (e) => {
-      if (e.code === 'Space') isBoosting = false;
-    });
-
     canvas.addEventListener('touchstart', (e) => {
       if (!isPlaying) return;
       const t = e.touches[0];
       mouseScreenX = t.clientX;
       mouseScreenY = t.clientY;
-      const now = performance.now();
-      if (now - lastTapTime < 280) {
-        isBoosting = true;
-      }
-      lastTapTime = now;
     }, { passive: true });
 
     canvas.addEventListener('touchmove', (e) => {
@@ -1070,10 +1040,6 @@
       mouseScreenX = t.clientX;
       mouseScreenY = t.clientY;
     }, { passive: true });
-
-    canvas.addEventListener('touchend', () => {
-      isBoosting = false;
-    });
 
     // ==================== FÍSICA E MECÂNICAS ====================
     function growSnake(snake, amount) {
@@ -1105,14 +1071,13 @@
       if (!me || !me.alive || spawnProtection > 0) return;
       me.alive = false;
       isPlaying = false;
-      isBoosting = false;
       if (missionTimerHandle) {
         clearTimeout(missionTimerHandle);
         missionTimerHandle = null;
       }
       playTone(150, 0.35, 'sawtooth', 0.09);
       spawnDeathOrbs(me);
-      syncPlayerToCloud(true, false);
+      syncPlayerToCloud(true);
 
       document.getElementById('deathReasonText').textContent = reason;
       document.getElementById('finalScoreText').textContent = Math.round(me.score);
@@ -1121,7 +1086,7 @@
       gameOverOverlay.style.display = 'flex';
     }
 
-    function updateSnakeMovement(snake, dt, boosting) {
+    function updateSnakeMovement(snake, dt) {
       if (!snake.alive) return;
 
       if (snake.powers.magnet > 0) snake.powers.magnet = Math.max(0, snake.powers.magnet - dt);
@@ -1131,12 +1096,14 @@
       const inIce = Math.hypot(snake.x - ICE_ZONE.x, snake.y - ICE_ZONE.y) < ICE_ZONE.r;
       const inSwamp = Math.hypot(snake.x - SWAMP_ZONE.x, snake.y - SWAMP_ZONE.y) < SWAMP_ZONE.r;
 
-      let speed = boosting ? BOOST_SPEED : BASE_SPEED;
+      // Velocidade diminui gradualmente conforme o tamanho da cobra cresce
+      const sizeFactor = getSizeSpeedFactor(snake);
+      let speed = BASE_SPEED * sizeFactor;
       if (inIce) speed *= 1.18;
       if (inSwamp) speed *= 0.84;
 
-      // Velocidade de giro equilibrada para os bots (mais próxima do jogador)
-      const baseTurn = snake.isBot ? 5.7 : 5.4;
+      // Curva também acompanha sutilmente o porte da cobra
+      const baseTurn = (snake.isBot ? 4.6 : 5.4) * (0.75 + 0.25 * sizeFactor);
       const turnRate = inIce ? baseTurn * 0.62 : baseTurn;
       const diff = normalizeAngle(snake.targetAngle - snake.angle);
       snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), turnRate * dt);
@@ -1232,7 +1199,7 @@
       }
     }
 
-    // ==================== INTELIGÊNCIA ARTIFICIAL EQUILIBRADA DOS BOTS ====================
+    // ==================== INTELIGÊNCIA ARTIFICIAL TRANQUILA DOS BOTS ====================
     function updateBots(dt) {
       syncBotsPopulation();
 
@@ -1244,29 +1211,29 @@
       for (const bot of bots) {
         bot.aiTimer -= dt;
 
-        // 1. Evasão de obstáculos e bordas
+        // 1. Evasão suave de bordas e obstáculos próximos (sem caçar jogadores)
         let dangerX = 0;
         let dangerY = 0;
         let dangerCount = 0;
-        const avoidRadius = 105;
+        const avoidRadius = 85;
 
-        const wallDist = 175;
-        if (bot.x < wallDist) { dangerX += (wallDist - bot.x) * 2.2; dangerCount++; }
-        if (bot.x > ARENA_SIZE - wallDist) { dangerX -= (bot.x - (ARENA_SIZE - wallDist)) * 2.2; dangerCount++; }
-        if (bot.y < wallDist) { dangerY += (wallDist - bot.y) * 2.2; dangerCount++; }
-        if (bot.y > ARENA_SIZE - wallDist) { dangerY -= (bot.y - (ARENA_SIZE - wallDist)) * 2.2; dangerCount++; }
+        const wallDist = 160;
+        if (bot.x < wallDist) { dangerX += (wallDist - bot.x) * 1.8; dangerCount++; }
+        if (bot.x > ARENA_SIZE - wallDist) { dangerX -= (bot.x - (ARENA_SIZE - wallDist)) * 1.8; dangerCount++; }
+        if (bot.y < wallDist) { dangerY += (wallDist - bot.y) * 1.8; dangerCount++; }
+        if (bot.y > ARENA_SIZE - wallDist) { dangerY -= (bot.y - (ARENA_SIZE - wallDist)) * 1.8; dangerCount++; }
 
         if (bot.powers.ghost <= 0) {
           for (const other of allSnakes) {
             if (other.id === bot.id || !other.alive || !Array.isArray(other.segments)) continue;
-            const step = other.segments.length > 35 ? 2 : 1;
+            const step = other.segments.length > 30 ? 3 : 2;
             for (let i = 0; i < other.segments.length; i += step) {
               const seg = other.segments[i];
               const dx = bot.x - seg.x;
               const dy = bot.y - seg.y;
               const d = Math.hypot(dx, dy);
               if (d < avoidRadius && d > 0.1) {
-                const weight = ((avoidRadius - d) / avoidRadius) * 200;
+                const weight = ((avoidRadius - d) / avoidRadius) * 140;
                 dangerX += (dx / d) * weight;
                 dangerY += (dy / d) * weight;
                 dangerCount++;
@@ -1274,97 +1241,53 @@
             }
           }
 
-          for (let i = 0; i < orbs.length; i += 2) {
+          for (let i = 0; i < orbs.length; i += 3) {
             const o = orbs[i];
             if (o.type !== 'poison') continue;
             const dx = bot.x - o.x;
             const dy = bot.y - o.y;
             const d = Math.hypot(dx, dy);
-            if (d < 75 && d > 0.1) {
-              dangerX += (dx / d) * 150;
-              dangerY += (dy / d) * 150;
+            if (d < 65 && d > 0.1) {
+              dangerX += (dx / d) * 110;
+              dangerY += (dy / d) * 110;
               dangerCount++;
             }
           }
         }
 
-        // 2. Decisão estratégica menos agressiva
+        // 2. Busca pacífica por orbes na arena
         if (bot.aiTimer <= 0) {
-          bot.aiTimer = 0.24 + Math.random() * 0.20;
-          bot.isBoosting = false;
+          bot.aiTimer = 0.35 + Math.random() * 0.30;
 
-          let huntedTarget = null;
-          // Só tenta cortar caminho ocasionalmente (45% de chance), quando maior e com bastante energia
-          if (bot.score >= 28 && bot.botEnergy > 65 && dangerCount === 0 && Math.random() < 0.45) {
-            let closestVictim = null;
-            let closestDist = 230;
-            for (const other of allSnakes) {
-              if (other.id === bot.id || !other.alive) continue;
-              const d = Math.hypot(other.x - bot.x, other.y - bot.y);
-              if (d < closestDist && d > 85) {
-                closestDist = d;
-                closestVictim = other;
-              }
-            }
+          let bestOrb = null;
+          let bestScoreVal = -Infinity;
 
-            if (closestVictim) {
-              const leadDist = 75;
-              const interceptX = Math.max(120, Math.min(ARENA_SIZE - 120, closestVictim.x + Math.cos(closestVictim.angle || 0) * leadDist));
-              const interceptY = Math.max(120, Math.min(ARENA_SIZE - 120, closestVictim.y + Math.sin(closestVictim.angle || 0) * leadDist));
-              bot.targetAngle = Math.atan2(interceptY - bot.y, interceptX - bot.x);
-              bot.isBoosting = true;
-              huntedTarget = closestVictim;
+          for (let i = 0; i < orbs.length; i += 2) {
+            const o = orbs[i];
+            if (o.type === 'poison') continue;
+            const d = Math.hypot(o.x - bot.x, o.y - bot.y);
+            if (d > 480) continue;
+
+            const priority = o.value * 110 + (o.type !== 'food' ? 160 : 0);
+            const utility = priority - d;
+            if (utility > bestScoreVal) {
+              bestScoreVal = utility;
+              bestOrb = o;
             }
           }
 
-          if (!huntedTarget) {
-            let bestOrb = null;
-            let bestScoreVal = -Infinity;
-
-            for (let i = 0; i < orbs.length; i++) {
-              const o = orbs[i];
-              if (o.type === 'poison') continue;
-              const d = Math.hypot(o.x - bot.x, o.y - bot.y);
-              if (d > 580) continue;
-
-              let priority = o.value * 130;
-              if (o.type === 'magnet' || o.type === 'vision' || o.type === 'ghost') priority += 320;
-              if (o.radius >= 8) priority += 180;
-
-              const utility = priority - d;
-              if (utility > bestScoreVal) {
-                bestScoreVal = utility;
-                bestOrb = o;
-              }
-            }
-
-            if (bestOrb) {
-              bot.targetAngle = Math.atan2(bestOrb.y - bot.y, bestOrb.x - bot.x);
-              if ((bestOrb.radius >= 8 || bestOrb.type !== 'food') && Math.hypot(bestOrb.x - bot.x, bestOrb.y - bot.y) < 150 && bot.botEnergy > 70 && bot.score > 16 && Math.random() < 0.5) {
-                bot.isBoosting = true;
-              }
-            } else {
-              bot.targetAngle += (Math.random() - 0.5) * 0.9;
-            }
+          if (bestOrb) {
+            bot.targetAngle = Math.atan2(bestOrb.y - bot.y, bestOrb.x - bot.x);
+          } else {
+            bot.targetAngle += (Math.random() - 0.5) * 1.1;
           }
         }
 
         if (dangerCount > 0) {
           bot.targetAngle = Math.atan2(dangerY, dangerX);
-          if (dangerCount >= 3 && bot.botEnergy > 55 && bot.score > 15) {
-            bot.isBoosting = true;
-          }
         }
 
-        const botCanBoost = bot.isBoosting && bot.botEnergy > 30 && bot.score > 14;
-        if (botCanBoost) {
-          bot.botEnergy = Math.max(0, bot.botEnergy - 42 * dt);
-          bot.score = Math.max(10, bot.score - 2.2 * dt);
-        } else {
-          bot.botEnergy = Math.min(100, bot.botEnergy + 20 * dt);
-        }
-
-        updateSnakeMovement(bot, dt, botCanBoost);
+        updateSnakeMovement(bot, dt);
       }
     }
 
@@ -1628,16 +1551,8 @@
       document.getElementById('hudScore').textContent = Math.round(me.score);
       document.getElementById('hudKills').textContent = me.kills;
 
-      document.getElementById('turboBar').style.width = Math.round(turboEnergy) + '%';
-      document.getElementById('turboPct').textContent = Math.round(turboEnergy) + '%';
-      const turboLabel = document.getElementById('turboLabel');
-      if (turboOverheated) {
-        turboLabel.textContent = '🔥 RESFRIANDO';
-        turboLabel.className = 'text-rose-400';
-      } else {
-        turboLabel.textContent = '⚡ TURBO';
-        turboLabel.className = 'text-cyan-300';
-      }
+      const speedPct = Math.round(getSizeSpeedFactor(me) * 100);
+      document.getElementById('hudSpeedPct').textContent = speedPct + '%';
 
       const powersDiv = document.getElementById('activePowersHud');
       let badges = '';
@@ -1755,17 +1670,7 @@
           mouseScreenX - canvas.width / 2
         );
 
-        const canBoost = isBoosting && !turboOverheated && turboEnergy > 0 && me.score > 11;
-        if (canBoost) {
-          turboEnergy = Math.max(0, turboEnergy - 34 * dt);
-          me.score = Math.max(10, me.score - 2.2 * dt);
-          if (turboEnergy <= 0) turboOverheated = true;
-        } else {
-          turboEnergy = Math.min(100, turboEnergy + 22 * dt);
-          if (turboOverheated && turboEnergy >= 45) turboOverheated = false;
-        }
-
-        updateSnakeMovement(me, dt, canBoost);
+        updateSnakeMovement(me, dt);
 
         if (portalCooldown > 0) portalCooldown -= dt;
         if (portalCooldown <= 0) {
@@ -1786,7 +1691,7 @@
 
         updateBots(dt);
         checkCollisions();
-        syncPlayerToCloud(false, canBoost);
+        syncPlayerToCloud(false);
         updateHUD();
         drawMinimap();
       } else {
