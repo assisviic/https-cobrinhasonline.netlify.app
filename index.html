@@ -49,6 +49,14 @@
 
   <!-- HUD SUPERIOR -->
   <div id="hudOverlay" style="display: none;" class="fixed inset-0 pointer-events-none z-20 p-3 sm:p-4 flex flex-col justify-between">
+    
+    <!-- BARRA SUPERIOR CENTRAL (BOTÃO SAIR ISOLADO E PRIORITÁRIO) -->
+    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
+      <button id="leaveRoomBtn" type="button" class="px-4 py-1.5 rounded-full bg-rose-950/95 hover:bg-rose-800 active:scale-95 border border-rose-500/50 text-xs font-extrabold uppercase tracking-wider text-rose-100 shadow-xl backdrop-blur-sm transition cursor-pointer">
+        ✕ Sair da Sala
+      </button>
+    </div>
+
     <!-- Linha Topo: Missão / Evento + Ranking + Controles -->
     <div class="flex items-start justify-between gap-2">
       <!-- Esquerda: Pontuação, Turbo, Habilidades Ativas e Missão Relâmpago -->
@@ -115,9 +123,6 @@
           </span>
           <button id="toggleGfxBtn" type="button" class="px-2.5 py-1 rounded-xl bg-slate-950/85 hover:bg-slate-800 border border-slate-700 text-[11px] font-bold text-slate-200 transition cursor-pointer">
             ✨ HD
-          </button>
-          <button id="leaveRoomBtn" type="button" class="px-2.5 py-1 rounded-xl bg-rose-950/85 hover:bg-rose-800 border border-rose-500/40 text-[11px] font-bold text-rose-200 transition cursor-pointer">
-            Sair
           </button>
         </div>
 
@@ -461,6 +466,7 @@
 
     function showLobbyScreen() {
       isPlaying = false;
+      isBoosting = false;
       if (me) me.alive = false;
       hudOverlay.style.display = 'none';
       gameOverOverlay.style.display = 'none';
@@ -964,6 +970,7 @@
     });
 
     window.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button, input')) return;
       if (e.button === 0 && isPlaying) isBoosting = true;
     });
     window.addEventListener('mouseup', () => {
@@ -1030,6 +1037,7 @@
       if (!me || !me.alive || spawnProtection > 0) return;
       me.alive = false;
       isPlaying = false;
+      isBoosting = false;
       playTone(150, 0.35, 'sawtooth', 0.09);
       spawnDeathOrbs(me);
       syncPlayerToCloud(true, false);
