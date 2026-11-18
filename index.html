@@ -6,11 +6,40 @@
   <title>COBRINHAS - Arena Multiplayer Online</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #060a12; font-family: 'Inter', system-ui, sans-serif; }
-    #gameCanvas { display: block; width: 100%; height: 100%; touch-action: none; }
-    #lobbyOverlay { touch-action: pan-y; }
-    #lobbyOverlay input { user-select: text; -webkit-user-select: text; }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #060a12;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    #lobbyOverlay, #lobbyOverlay * {
+      touch-action: pan-y;
+    }
+    #lobbyOverlay input {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
   </style>
 </head>
 <body class="bg-[#060a12] text-slate-100">
@@ -18,71 +47,909 @@
   <!-- CANVAS DO JOGO -->
   <canvas id="gameCanvas"></canvas>
 
-  <!-- HUD DO JOGO -->
-  <div id="hudOverlay" style="display: none;" class="fixed inset-0 pointer-events-none z-20 p-4 flex flex-col justify-between">
+  <!-- HUD SUPERIOR -->
+  <div id="hudOverlay" class="hidden fixed inset-0 pointer-events-none z-20 p-3 sm:p-4 flex flex-col justify-between">
+    <!-- Linha Topo: Missão / Evento + Ranking + Controles -->
     <div class="flex items-start justify-between gap-2">
-      <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 pointer-events-auto shadow-xl w-44">
-        <div class="flex justify-between items-center mb-1">
-          <div>
-            <div class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Pontos</div>
-            <div id="hudScore" class="text-lg font-black text-emerald-400">10</div>
+      <!-- Esquerda: Pontuação, Turbo, Habilidades Ativas e Missão Relâmpago -->
+      <div class="flex flex-col gap-2 max-w-[230px] sm:max-w-[270px]">
+        <!-- Status e Pontos -->
+        <div class="bg-slate-950/80 border border-slate-800/90 rounded-2xl px-3 py-2 backdrop-blur-sm shadow-lg">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pontuação</div>
+              <div id="hudScore" class="text-lg sm:text-xl font-black text-emerald-400 leading-tight">10</div>
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Abates</div>
+              <div id="hudKills" class="text-sm sm:text-base font-extrabold text-amber-400 leading-tight">0</div>
+            </div>
+          </div>
+
+          <!-- Barra de Turbo / Temperatura -->
+          <div class="mt-2">
+            <div class="flex justify-between text-[10px] font-bold mb-0.5">
+              <span id="turboLabel" class="text-cyan-300">⚡ TURBO</span>
+              <span id="turboPct" class="text-slate-300">100%</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="turboBar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-75" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <!-- Power-ups Ativos -->
+          <div id="activePowersHud" class="flex flex-wrap gap-1.5 mt-2 empty:hidden"></div>
+        </div>
+
+        <!-- Banner Evento Relâmpago Global -->
+        <div id="globalEventCard" class="hidden bg-amber-950/85 border border-amber-500/40 rounded-xl px-3 py-2 shadow-lg">
+          <div class="flex items-center justify-between gap-2">
+            <span id="globalEventTitle" class="text-[11px] font-black text-amber-300 uppercase tracking-wide">⚡ EVENTO RELÂMPAGO</span>
+            <span id="globalEventTimer" class="text-[11px] font-extrabold text-white bg-amber-600/40 px-1.5 py-0.5 rounded">30s</span>
+          </div>
+          <p id="globalEventDesc" class="text-[11px] text-amber-100/90 mt-0.5 leading-tight"></p>
+        </div>
+
+        <!-- Card Missão Relâmpago Individual -->
+        <div id="missionCard" class="hidden bg-indigo-950/85 border border-indigo-400/40 rounded-xl px-3 py-2 shadow-lg">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-300">🎯 MISSÃO RELÂMPAGO</span>
+            <span id="missionTimer" class="text-[10px] font-bold text-indigo-200 bg-indigo-500/30 px-1.5 py-0.5 rounded">25s</span>
+          </div>
+          <div id="missionText" class="text-xs font-bold text-white mt-0.5 leading-snug">Coma 15 orbes</div>
+          <div class="flex items-center justify-between text-[10px] text-indigo-200 mt-1">
+            <span id="missionProgressText">0 / 15</span>
+            <span id="missionRewardText" class="font-extrabold text-amber-300">+80 pts</span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden mt-1">
+            <div id="missionBar" class="h-full bg-gradient-to-r from-indigo-400 to-amber-400 transition-all duration-150" style="width: 0%"></div>
           </div>
         </div>
       </div>
-      <button id="leaveRoomBtn" type="button" class="px-3 py-1.5 rounded-xl bg-rose-950/90 hover:bg-rose-800 border border-rose-500/40 text-xs font-bold text-rose-200 transition pointer-events-auto shadow-md cursor-pointer">
-        Sair para o Lobby
+
+      <!-- Direita: Botões Rápidos + Ranking -->
+      <div class="flex flex-col items-end gap-2">
+        <div class="flex items-center gap-1.5 pointer-events-auto">
+          <span id="hudRoomBadge" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-950/85 border border-slate-800 text-[11px] font-bold text-emerald-300">
+            🌐 Pública
+          </span>
+          <button id="toggleGfxBtn" type="button" class="px-2.5 py-1 rounded-xl bg-slate-950/85 hover:bg-slate-800 border border-slate-700 text-[11px] font-bold text-slate-200 transition">
+            ✨ HD
+          </button>
+          <button id="leaveRoomBtn" type="button" class="px-2.5 py-1 rounded-xl bg-rose-950/85 hover:bg-rose-800 border border-rose-500/40 text-[11px] font-bold text-rose-200 transition">
+            Sair
+          </button>
+        </div>
+
+        <!-- Ranking Compacto -->
+        <div class="bg-slate-950/80 border border-slate-800/90 rounded-2xl p-2.5 w-[155px] sm:w-[190px] backdrop-blur-sm shadow-lg">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400">🏆 Ranking</span>
+            <span id="hudPlayersOnline" class="text-[10px] font-bold text-slate-400">1/10</span>
+          </div>
+          <div id="leaderboardList" class="space-y-1 text-[11px]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé: Dica de Controle + Radar Minimapa -->
+    <div class="flex items-end justify-between">
+      <div class="bg-slate-950/75 border border-slate-800/80 rounded-xl px-2.5 py-1.5 text-[10px] sm:text-xs text-slate-300">
+        <span class="hidden sm:inline">🖱️ Mova o mouse para guiar • Segure <b>Clique / Espaço</b> para Turbo</span>
+        <span class="sm:hidden">👆 Arraste para guiar • <b>2 toques</b> para Turbo</span>
+      </div>
+
+      <!-- Minimapa -->
+      <div class="relative rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950/85 shadow-xl">
+        <canvas id="minimapCanvas" width="116" height="116" class="block w-[96px] h-[96px] sm:w-[116px] sm:h-[116px]"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TELA DE GAME OVER -->
+  <div id="gameOverOverlay" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
+    <div class="w-full max-w-[360px] rounded-3xl bg-[#0e1526] border border-rose-500/30 p-6 text-center shadow-2xl">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-3xl mb-3">
+        💥
+      </div>
+      <h2 class="text-2xl font-black text-white">Você foi eliminado!</h2>
+      <p id="deathReasonText" class="text-xs text-slate-400 mt-1 mb-4">Você colidiu com outro jogador.</p>
+
+      <div class="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 mb-5">
+        <div>
+          <div class="text-[10px] font-bold uppercase text-slate-400">Pontuação Final</div>
+          <div id="finalScoreText" class="text-xl font-black text-emerald-400">0</div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold uppercase text-slate-400">Eliminações</div>
+          <div id="finalKillsText" class="text-xl font-black text-amber-400">0</div>
+        </div>
+      </div>
+
+      <button id="respawnBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wide shadow-lg shadow-emerald-500/25 transition">
+        JOGAR NOVAMENTE
       </button>
     </div>
   </div>
 
-  <!-- LOBBY -->
-  <div id="lobbyOverlay" style="display: flex;" class="fixed inset-0 z-30 items-center justify-center p-3 sm:p-4 bg-[#070b14]/95 overflow-y-auto">
-    <div class="w-full max-w-[390px] my-auto rounded-[26px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-4 sm:p-6 shadow-2xl text-slate-100">
-      <h1 class="text-center text-[30px] font-black tracking-wide text-[#7af5d8] mb-2">COBRINHAS</h1>
-      <input id="nicknameInput" type="text" maxlength="16" placeholder="Seu Apelido" class="w-full px-3.5 py-3 rounded-xl bg-[#101829] border border-slate-700 text-white mb-4 text-center focus:outline-none focus:border-emerald-400" />
-      <button id="startGameBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wide shadow-lg transition cursor-pointer">
+  <!-- TELA INICIAL / LOBBY (COM SCROLL LIBERADO NO CELULAR) -->
+  <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-[#070b14]/90 overflow-y-auto overscroll-contain">
+    <div id="lobbyCard" class="w-full max-w-[390px] my-2 sm:my-auto rounded-[26px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-4 sm:p-6 shadow-2xl text-slate-100">
+
+      <!-- Selo Topo -->
+      <div class="flex justify-center mb-2 sm:mb-3">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-[10px] sm:text-[11px] font-extrabold tracking-wider text-emerald-300 uppercase">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+          ARENA MULTIPLAYER ONLINE
+        </div>
+      </div>
+
+      <!-- Título e Subtítulo -->
+      <h1 class="text-center text-[30px] sm:text-[36px] leading-none font-black tracking-wide text-[#7af5d8] mb-1.5 sm:mb-2">
+        COBRINHAS
+      </h1>
+      <p class="text-center text-xs sm:text-[13px] leading-snug text-slate-300/90 mb-3.5 sm:mb-5 px-1">
+        Coma orbes brilhantes, corte o caminho de outros jogadores e domine o ranking!
+      </p>
+
+      <!-- Apelido -->
+      <div class="mb-3 sm:mb-4">
+        <label for="nicknameInput" class="block text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1">
+          SEU APELIDO NA ARENA
+        </label>
+        <input
+          id="nicknameInput"
+          type="text"
+          maxlength="16"
+          placeholder="Ex: CobraRei, Relâmpago..."
+          class="w-full px-3.5 py-2.5 sm:py-3 rounded-xl bg-[#101829] border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 transition"
+        />
+      </div>
+
+      <!-- Seletor de Cores -->
+      <div class="mb-3 sm:mb-3.5">
+        <span class="block text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1">
+          ESCOLHA A COR DA SUA COBRINHA
+        </span>
+        <div id="colorPicker" class="flex flex-wrap justify-center items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#0e1525]/90 border border-slate-800/90">
+          <button type="button" data-color="#10b981" class="color-swatch w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#10b981] ring-[3px] ring-white shadow-[0_0_14px_rgba(255,255,255,0.55)] transition transform scale-105"></button>
+          <button type="button" data-color="#3b82f6" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#3b82f6] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#ef4444" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#ef4444] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#a855f7" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#a855f7] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#f59e0b" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#f59e0b] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#06b6d4" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#06b6d4] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#ec4899" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#ec4899] opacity-90 hover:opacity-100 transition"></button>
+        </div>
+      </div>
+
+      <!-- Estampas / Skins -->
+      <div id="skinPicker" class="grid grid-cols-2 gap-2 sm:gap-2.5 mb-3 sm:mb-4">
+        <button type="button" data-skin="solid" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#13292a] border border-emerald-400/70 text-white transition">
+          Clássico Sólido
+        </button>
+        <button type="button" data-skin="striped" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
+          Listrado
+        </button>
+        <button type="button" data-skin="neon" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
+          Neon Pulse
+        </button>
+        <button type="button" data-skin="rainbow" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
+          Arco-Íris
+        </button>
+        <button type="button" data-skin="brasil" class="skin-btn col-span-2 py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
+          Brasil
+        </button>
+      </div>
+
+      <!-- Modo de Sala -->
+      <div class="p-3 sm:p-3.5 rounded-2xl bg-[#0d1424] border border-slate-800/90 mb-3 sm:mb-4">
+        <div class="flex items-center justify-between gap-1.5 mb-2.5">
+          <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase">MODO DE SALA</span>
+          <div class="flex items-center gap-1.5">
+            <span id="lobbyRoomCount" class="px-2 py-0.5 rounded-full bg-[#13253a] border border-sky-500/30 text-[10px] font-bold text-sky-300">
+              👥 1/10 na sala
+            </span>
+            <span id="lobbyRoomBadge" class="px-2 py-0.5 rounded-full bg-[#102e26] border border-emerald-500/30 text-[10px] font-bold text-emerald-300">
+              🌐 Arena Pública
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button id="publicRoomBtn" type="button" class="py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20">
+            Arena Pública
+          </button>
+          <button id="privateRoomBtn" type="button" class="py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition">
+            Sala Privada 🔒
+          </button>
+        </div>
+
+        <!-- Painel de Sala Privada -->
+        <div id="privateRoomPanel" class="hidden mt-2.5 pt-2.5 border-t border-slate-800 space-y-2">
+          <div class="flex gap-1.5">
+            <input id="roomCodeInput" type="text" maxlength="8" placeholder="CÓDIGO" class="min-w-0 flex-1 px-2.5 py-2 rounded-lg bg-[#090e1a] border border-slate-700 text-xs font-bold uppercase text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
+            <button id="createRoomBtn" type="button" class="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-300 border border-emerald-500/30 shrink-0">
+              Gerar
+            </button>
+            <button id="copyRoomLinkBtn" type="button" class="px-2.5 py-2 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-xs font-bold text-emerald-300 border border-emerald-500/40 shrink-0">
+              Copiar Link
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status de Conexão -->
+      <div id="connectionStatus" class="flex items-center justify-center gap-1.5 text-xs sm:text-[13px] mb-3 sm:mb-4">
+        <span id="connDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse"></span>
+        <span id="connTitle" class="font-bold text-amber-400">Conectando...</span>
+        <span id="connSub" class="text-slate-300">Aguardando servidor.</span>
+      </div>
+
+      <!-- Botão Entrar -->
+      <button id="startGameBtn" type="button" class="w-full py-3 sm:py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-sm sm:text-base tracking-wide uppercase shadow-lg shadow-emerald-500/25 transition">
         ENTRAR NA SALA
       </button>
+
     </div>
   </div>
 
-  <script>
+  <!-- LÓGICA DO JOGO E SINCRONIZAÇÃO FIREBASE -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      deleteDoc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+    // Credenciais do projeto Firebase: Servidor de Cobrinhas
+    const firebaseConfig = {
+      apiKey: "AIzaSyBQ7A9l81CbX3Bzn-wTkAVQBKci8251UNU",
+      authDomain: "servidor-de-cobrinhas.firebaseapp.com",
+      projectId: "servidor-de-cobrinhas",
+      storageBucket: "servidor-de-cobrinhas.firebasestorage.app",
+      messagingSenderId: "689255081213",
+      appId: "1:689255081213:web:769cb127bb70980a278a94",
+      measurementId: "G-N6J0C62JMM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // ==================== CONFIGURAÇÕES DA ARENA ====================
     const ARENA_SIZE = 3200;
+    const MAX_ROOM_PLAYERS = 10;
+    const TARGET_TOTAL_SNAKES = 8;
     const BASE_SPEED = 235;
+    const BOOST_SPEED = 415;
     const SEGMENT_SPACING = 6.5;
     const INITIAL_LENGTH = 18;
     const ORB_PALETTE = ['#34d399', '#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf'];
 
+    const ICE_ZONE = { x: 820, y: 820, r: 460 };
+    const SWAMP_ZONE = { x: 2380, y: 2380, r: 480 };
+    const PORTALS = [
+      { id: 'A', x: 650, y: 2550, targetX: 2550, targetY: 650, color: '#38bdf8' },
+      { id: 'B', x: 2550, y: 650, targetX: 650, targetY: 2550, color: '#c084fc' }
+    ];
+
+    // ==================== ESTADO GLOBAL ====================
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
-    const lobbyOverlay = document.getElementById('lobbyOverlay');
-    const hudOverlay = document.getElementById('hudOverlay');
-    const startGameBtn = document.getElementById('startGameBtn');
-    const leaveRoomBtn = document.getElementById('leaveRoomBtn');
-    const nicknameInput = document.getElementById('nicknameInput');
+    const miniCanvas = document.getElementById('minimapCanvas');
+    const miniCtx = miniCanvas.getContext('2d');
+
+    let selectedColor = '#10b981';
+    let selectedSkin = 'solid';
+    let roomMode = 'public';
+    let currentRoomId = 'public_arena_1';
+
+    let currentUser = null;
+    let isOnlineConnected = false;
+    let unsubPlayers = null;
+    let unsubOrbs = null;
 
     let isPlaying = false;
+    let lowGraphics = window.innerWidth < 768;
     let lastFrameTime = performance.now();
+    let lastNetSyncTime = 0;
+    let lastOrbSyncTime = 0;
+
     let me = null;
+    let remotePlayers = new Map();
+    let bots = [];
     let orbs = [];
+    let portalCooldown = 0;
+
+    let isBoosting = false;
+    let turboEnergy = 100;
+    let turboOverheated = false;
+
+    let globalEvent = null;
+    let nextEventCheck = performance.now() + 18000;
+    let currentMission = null;
+
     let mouseScreenX = window.innerWidth / 2;
     let mouseScreenY = window.innerHeight / 2;
+    let lastTapTime = 0;
 
-    function generateInitialOrbs(count = 250) {
+    // ==================== ÁUDIO SINTÉTICO LEVE ====================
+    let audioCtx = null;
+    function playTone(freq, duration = 0.08, type = 'sine', vol = 0.05) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (_) {}
+    }
+
+    // ==================== UI & LOBBY ====================
+    const connDot = document.getElementById('connDot');
+    const connTitle = document.getElementById('connTitle');
+    const connSub = document.getElementById('connSub');
+
+    function setConnectionUI(status, title, sub) {
+      connDot.className = 'w-2 h-2 rounded-full inline-block';
+      connTitle.className = 'font-bold';
+      if (status === 'online') {
+        connDot.classList.add('bg-emerald-400');
+        connTitle.classList.add('text-emerald-400');
+      } else if (status === 'warn') {
+        connDot.classList.add('bg-amber-400');
+        connTitle.classList.add('text-amber-400');
+      } else {
+        connDot.classList.add('bg-rose-400');
+        connTitle.classList.add('text-rose-400');
+      }
+      connTitle.textContent = title;
+      connSub.textContent = sub;
+    }
+
+    document.querySelectorAll('.color-swatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedColor = btn.dataset.color;
+        document.querySelectorAll('.color-swatch').forEach(b => {
+          b.classList.remove('w-9', 'h-9', 'sm:w-11', 'sm:h-11', 'ring-[3px]', 'ring-white', 'shadow-[0_0_14px_rgba(255,255,255,0.55)]', 'scale-105');
+          b.classList.add('w-8', 'h-8', 'sm:w-10', 'sm:h-10', 'opacity-90');
+        });
+        btn.classList.remove('w-8', 'h-8', 'sm:w-10', 'sm:h-10', 'opacity-90');
+        btn.classList.add('w-9', 'h-9', 'sm:w-11', 'sm:h-11', 'ring-[3px]', 'ring-white', 'shadow-[0_0_14px_rgba(255,255,255,0.55)]', 'scale-105');
+      });
+    });
+
+    document.querySelectorAll('.skin-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedSkin = btn.dataset.skin;
+        const isBrasil = btn.dataset.skin === 'brasil';
+        document.querySelectorAll('.skin-btn').forEach(b => {
+          const spanClass = b.dataset.skin === 'brasil' ? 'col-span-2 ' : '';
+          b.className = `skin-btn ${spanClass}py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition`;
+        });
+        const activeSpan = isBrasil ? 'col-span-2 ' : '';
+        btn.className = `skin-btn ${activeSpan}py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#13292a] border border-emerald-400/70 text-white transition`;
+      });
+    });
+
+    const publicRoomBtn = document.getElementById('publicRoomBtn');
+    const privateRoomBtn = document.getElementById('privateRoomBtn');
+    const privateRoomPanel = document.getElementById('privateRoomPanel');
+    const roomCodeInput = document.getElementById('roomCodeInput');
+    const lobbyRoomBadge = document.getElementById('lobbyRoomBadge');
+    const lobbyOverlay = document.getElementById('lobbyOverlay');
+    const startGameBtn = document.getElementById('startGameBtn');
+
+    function updateRoomSelection(mode) {
+      roomMode = mode;
+      if (mode === 'public') {
+        currentRoomId = 'public_arena_1';
+        publicRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20';
+        privateRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition';
+        privateRoomPanel.classList.add('hidden');
+        lobbyRoomBadge.textContent = '🌐 Arena Pública';
+      } else {
+        privateRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20';
+        publicRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition';
+        privateRoomPanel.classList.remove('hidden');
+        if (!roomCodeInput.value.trim()) {
+          roomCodeInput.value = 'SALA' + Math.floor(100 + Math.random() * 900);
+        }
+        currentRoomId = 'private_' + roomCodeInput.value.trim().toUpperCase();
+        lobbyRoomBadge.textContent = '🔒 ' + roomCodeInput.value.trim().toUpperCase();
+        setTimeout(() => {
+          startGameBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 60);
+      }
+      subscribeToRoom(currentRoomId);
+    }
+
+    publicRoomBtn.addEventListener('click', () => updateRoomSelection('public'));
+    privateRoomBtn.addEventListener('click', () => updateRoomSelection('private'));
+    document.getElementById('createRoomBtn').addEventListener('click', () => {
+      roomCodeInput.value = 'VIP' + Math.floor(100 + Math.random() * 900);
+      updateRoomSelection('private');
+    });
+    document.getElementById('copyRoomLinkBtn').addEventListener('click', async (e) => {
+      const code = roomCodeInput.value.trim().toUpperCase();
+      if (!code) return;
+      const url = `${window.location.origin}${window.location.pathname}?sala=${encodeURIComponent(code)}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        const orig = e.target.textContent;
+        e.target.textContent = 'Copiado!';
+        setTimeout(() => { e.target.textContent = orig; }, 1600);
+      } catch (_) {}
+    });
+    roomCodeInput.addEventListener('input', () => {
+      if (roomMode === 'private' && roomCodeInput.value.trim()) {
+        currentRoomId = 'private_' + roomCodeInput.value.trim().toUpperCase();
+        lobbyRoomBadge.textContent = '🔒 ' + roomCodeInput.value.trim().toUpperCase();
+        subscribeToRoom(currentRoomId);
+      }
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedRoomCode = urlParams.get('sala');
+    if (sharedRoomCode) {
+      roomCodeInput.value = sharedRoomCode.toUpperCase().slice(0, 8);
+      updateRoomSelection('private');
+    }
+
+    // ==================== GERADOR DE ORBES E POWER-UPS ====================
+    function createRandomOrb(id, forceType = null) {
+      const margin = 140;
+      const x = margin + Math.random() * (ARENA_SIZE - margin * 2);
+      const y = margin + Math.random() * (ARENA_SIZE - margin * 2);
+      let type = forceType;
+
+      if (!type) {
+        const roll = Math.random();
+        if (roll < 0.028) type = 'magnet';
+        else if (roll < 0.052) type = 'vision';
+        else if (roll < 0.074) type = 'ghost';
+        else if (roll < 0.125) type = 'poison';
+        else type = 'food';
+      }
+
+      if (type === 'magnet') return { id, x, y, type: 'magnet', color: '#f59e0b', value: 4, radius: 13 };
+      if (type === 'vision') return { id, x, y, type: 'vision', color: '#06b6d4', value: 4, radius: 13 };
+      if (type === 'ghost') return { id, x, y, type: 'ghost', color: '#c084fc', value: 4, radius: 13 };
+      if (type === 'poison') return { id, x, y, type: 'poison', color: '#a855f7', value: -5, radius: 12 };
+
+      const color = ORB_PALETTE[Math.floor(Math.random() * ORB_PALETTE.length)];
+      return {
+        id,
+        x,
+        y,
+        type: 'food',
+        color,
+        value: 1,
+        radius: 5.5 + Math.random() * 2.5
+      };
+    }
+
+    function generateInitialOrbs(count = 230) {
       const list = [];
       for (let i = 0; i < count; i++) {
-        list.push({
-          x: 200 + Math.random() * (ARENA_SIZE - 400),
-          y: 200 + Math.random() * (ARENA_SIZE - 400),
-          color: ORB_PALETTE[Math.floor(Math.random() * ORB_PALETTE.length)],
-          value: 1,
-          radius: 6
-        });
+        list.push(createRandomOrb('orb_' + i));
       }
       return list;
     }
-    orbs = generateInitialOrbs(250);
 
+    // ==================== CONEXÃO FIREBASE + INTERPOLAÇÃO SUAVE ====================
+    function normalizeAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function lerpAngle(current, target, t) {
+      const diff = normalizeAngle(target - current);
+      return current + diff * t;
+    }
+
+    function subscribeToRoom(roomId) {
+      if (unsubPlayers) { unsubPlayers(); unsubPlayers = null; }
+      if (unsubOrbs) { unsubOrbs(); unsubOrbs = null; }
+      remotePlayers.clear();
+
+      if (!currentUser) return;
+
+      const playersCol = collection(db, 'rooms', roomId, 'players');
+      unsubPlayers = onSnapshot(playersCol, (snapshot) => {
+        const now = Date.now();
+        const activeIds = new Set();
+
+        snapshot.forEach((docSnap) => {
+          if (docSnap.id === currentUser.uid) return;
+          const data = docSnap.data();
+
+          if (data.lastSeen && now - data.lastSeen < 14000 && data.alive) {
+            activeIds.add(docSnap.id);
+            const existing = remotePlayers.get(docSnap.id);
+            const incomingSegs = Array.isArray(data.segments) ? data.segments : [];
+
+            if (!existing) {
+              // Primeiro contato: inicializa pontos de renderização já na posição exata
+              remotePlayers.set(docSnap.id, {
+                id: docSnap.id,
+                ...data,
+                targetX: data.x,
+                targetY: data.y,
+                targetAngle: data.angle || 0,
+                targetSegments: incomingSegs.map(s => ({ x: s.x, y: s.y })),
+                segments: incomingSegs.map(s => ({ x: s.x, y: s.y })),
+                lastPacketTime: performance.now()
+              });
+            } else {
+              // Atualiza apenas os alvos (targets); o loop de 60 FPS interpola suavemente
+              existing.name = data.name;
+              existing.color = data.color;
+              existing.skin = data.skin;
+              existing.alive = data.alive;
+              existing.score = data.score;
+              existing.kills = data.kills;
+              existing.ghost = data.ghost;
+              existing.boosting = Boolean(data.boosting);
+              existing.lastSeen = data.lastSeen;
+
+              // Se houve teleporte de portal (salto > 450px), encaixa imediatamente
+              const jumpDist = Math.hypot(data.x - existing.x, data.y - existing.y);
+              if (jumpDist > 450) {
+                existing.x = data.x;
+                existing.y = data.y;
+                existing.angle = data.angle || 0;
+                existing.segments = incomingSegs.map(s => ({ x: s.x, y: s.y }));
+              }
+
+              existing.targetX = data.x;
+              existing.targetY = data.y;
+              existing.targetAngle = data.angle || 0;
+              existing.targetSegments = incomingSegs;
+              existing.lastPacketTime = performance.now();
+            }
+          }
+        });
+
+        // Remove quem saiu ou morreu
+        for (const id of remotePlayers.keys()) {
+          if (!activeIds.has(id)) {
+            remotePlayers.delete(id);
+          }
+        }
+
+        const totalHumans = remotePlayers.size + (isPlaying ? 1 : 0);
+        const displayCount = Math.min(MAX_ROOM_PLAYERS, Math.max(1, totalHumans));
+        document.getElementById('lobbyRoomCount').textContent = `👥 ${displayCount}/${MAX_ROOM_PLAYERS} na sala`;
+        document.getElementById('hudPlayersOnline').textContent = `${displayCount}/${MAX_ROOM_PLAYERS}`;
+      }, (err) => {
+        console.warn('Firestore players listener:', err.code);
+      });
+
+      const orbsDocRef = doc(db, 'rooms', roomId, 'state', 'orbs');
+      unsubOrbs = onSnapshot(orbsDocRef, async (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            orbs = data.items;
+          }
+        } else {
+          orbs = generateInitialOrbs(230);
+          try {
+            await setDoc(orbsDocRef, { items: orbs, updatedAt: Date.now() });
+          } catch (_) {}
+        }
+      });
+    }
+
+    // Atualiza suavemente todos os jogadores remotos a 60 FPS (Interpolação + Dead Reckoning)
+    function updateRemotePlayersSmooth(dt) {
+      const now = performance.now();
+      const posBlend = 1 - Math.exp(-16 * dt);
+      const segBlend = 1 - Math.exp(-18 * dt);
+
+      remotePlayers.forEach((rp) => {
+        if (!rp.alive) return;
+
+        // 1. Previsão leve de movimento (Dead Reckoning) enquanto aguarda próximo pacote
+        const packetAge = Math.min(0.22, (now - (rp.lastPacketTime || now)) / 1000);
+        const estSpeed = rp.boosting ? BOOST_SPEED : BASE_SPEED;
+        const predictedX = rp.targetX + Math.cos(rp.targetAngle) * estSpeed * packetAge * 0.65;
+        const predictedY = rp.targetY + Math.sin(rp.targetAngle) * estSpeed * packetAge * 0.65;
+
+        // 2. Interpola posição e ângulo da cabeça
+        rp.x += (predictedX - rp.x) * posBlend;
+        rp.y += (predictedY - rp.y) * posBlend;
+        rp.angle = lerpAngle(rp.angle || 0, rp.targetAngle || 0, posBlend);
+
+        // 3. Interpola cada segmento do corpo e mantém a cadeia conectada
+        const targets = rp.targetSegments || [];
+        if (targets.length > 0) {
+          // Ajusta tamanho do array de segmentos suavemente
+          while (rp.segments.length < targets.length) {
+            const last = rp.segments[rp.segments.length - 1] || { x: rp.x, y: rp.y };
+            rp.segments.push({ x: last.x, y: last.y });
+          }
+          if (rp.segments.length > targets.length) {
+            rp.segments.length = targets.length;
+          }
+
+          rp.segments[0].x = rp.x;
+          rp.segments[0].y = rp.y;
+
+          for (let i = 1; i < rp.segments.length; i++) {
+            const curr = rp.segments[i];
+            const targ = targets[i];
+            curr.x += (targ.x - curr.x) * segBlend;
+            curr.y += (targ.y - curr.y) * segBlend;
+          }
+        }
+      });
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+        isOnlineConnected = true;
+        setConnectionUI('online', 'Arena Pronta!', 'Conectado à sala.');
+        subscribeToRoom(currentRoomId);
+      }
+    });
+
+    signInAnonymously(auth).catch((err) => {
+      console.warn('Firebase Auth fallback:', err.code);
+      isOnlineConnected = false;
+      orbs = generateInitialOrbs(230);
+      setConnectionUI('warn', 'Modo Local Ativo!', 'Jogue agora mesmo com bots.');
+    });
+
+    // ==================== CRIAÇÃO DE COBRINHAS E BOTS ====================
+    const BOT_NAMES = ['Víbora', 'Relâmpago', 'Sombra', 'CobraRei', 'Titan', 'Naja', 'Fúria', 'Estrela', 'Vortex', 'Zika'];
+
+    function createSnakeEntity(id, name, color, skin, isBot = false) {
+      const margin = 350;
+      const x = margin + Math.random() * (ARENA_SIZE - margin * 2);
+      const y = margin + Math.random() * (ARENA_SIZE - margin * 2);
+      const angle = Math.random() * Math.PI * 2;
+      const segments = [];
+      for (let i = 0; i < INITIAL_LENGTH; i++) {
+        segments.push({
+          x: x - Math.cos(angle) * i * SEGMENT_SPACING,
+          y: y - Math.sin(angle) * i * SEGMENT_SPACING
+        });
+      }
+      return {
+        id,
+        name,
+        color,
+        skin,
+        isBot,
+        alive: true,
+        x,
+        y,
+        angle,
+        targetAngle: angle,
+        score: 10,
+        kills: 0,
+        segments,
+        powers: { magnet: 0, vision: 0, ghost: 0 },
+        aiTimer: 0
+      };
+    }
+
+    function syncBotsPopulation() {
+      const activeHumans = (me && me.alive ? 1 : 0) + remotePlayers.size;
+      const neededBots = Math.max(0, TARGET_TOTAL_SNAKES - activeHumans);
+      while (bots.length < neededBots) {
+        const idx = Math.floor(Math.random() * BOT_NAMES.length);
+        const colors = ['#3b82f6', '#ef4444', '#a855f7', '#f59e0b', '#06b6d4', '#ec4899', '#10b981'];
+        const skins = ['solid', 'striped', 'neon', 'rainbow', 'brasil'];
+        bots.push(createSnakeEntity(
+          'bot_' + Math.random().toString(36).slice(2, 8),
+          BOT_NAMES[idx],
+          colors[Math.floor(Math.random() * colors.length)],
+          skins[Math.floor(Math.random() * skins.length)],
+          true
+        ));
+      }
+      if (bots.length > neededBots) {
+        bots.length = neededBots;
+      }
+    }
+
+    // ==================== MISSÕES RELÂMPAGO & EVENTOS ====================
+    function assignNewMission() {
+      const templates = [
+        { type: 'eat_orbs', text: 'Coma 15 orbes brilhantes', target: 15, reward: 60, duration: 28 },
+        { type: 'swamp_orbs', text: 'Coma 6 orbes no Pântano', target: 6, reward: 85, duration: 32 },
+        { type: 'ice_survive', text: 'Sobreviva 12s na Zona de Gelo', target: 12, reward: 75, duration: 28 },
+        { type: 'collect_power', text: 'Pegue 1 habilidade especial', target: 1, reward: 70, duration: 30 }
+      ];
+      const tpl = templates[Math.floor(Math.random() * templates.length)];
+      currentMission = {
+        ...tpl,
+        progress: 0,
+        timeLeft: tpl.duration
+      };
+      updateMissionUI();
+    }
+
+    function progressMission(type, amount = 1) {
+      if (!currentMission || currentMission.type !== type) return;
+      currentMission.progress = Math.min(currentMission.target, currentMission.progress + amount);
+      if (currentMission.progress >= currentMission.target) {
+        if (me && me.alive) {
+          me.score += currentMission.reward;
+          growSnake(me, 8);
+          playTone(660, 0.14, 'triangle', 0.08);
+          setTimeout(() => playTone(880, 0.18, 'triangle', 0.08), 90);
+        }
+        currentMission = null;
+        document.getElementById('missionCard').classList.add('hidden');
+        setTimeout(() => { if (isPlaying) assignNewMission(); }, 8000);
+        return;
+      }
+      updateMissionUI();
+    }
+
+    function updateMissionUI() {
+      const card = document.getElementById('missionCard');
+      if (!currentMission) {
+        card.classList.add('hidden');
+        return;
+      }
+      card.classList.remove('hidden');
+      document.getElementById('missionTimer').textContent = Math.ceil(currentMission.timeLeft) + 's';
+      document.getElementById('missionText').textContent = currentMission.text;
+      document.getElementById('missionProgressText').textContent = `${Math.floor(currentMission.progress)} / ${currentMission.target}`;
+      document.getElementById('missionRewardText').textContent = `+${currentMission.reward} pts`;
+      const pct = Math.min(100, (currentMission.progress / currentMission.target) * 100);
+      document.getElementById('missionBar').style.width = pct + '%';
+    }
+
+    function triggerGlobalEvent() {
+      const events = [
+        { type: 'gold_rush', title: '⚡ FEBRE DE ORBES', desc: 'Orbes valem o dobro de pontos por 25s!' },
+        { type: 'super_magnet', title: '🧲 TEMPESTADE MAGNÉTICA', desc: 'Alcance de coleta aumentado para todos!' }
+      ];
+      const ev = events[Math.floor(Math.random() * events.length)];
+      globalEvent = { ...ev, timeLeft: 25 };
+      document.getElementById('globalEventTitle').textContent = ev.title;
+      document.getElementById('globalEventDesc').textContent = ev.desc;
+      document.getElementById('globalEventCard').classList.remove('hidden');
+    }
+
+    // ==================== INICIAR / ENTRAR NA PARTIDA ====================
+    function startMatch() {
+      if (roomMode === 'private') {
+        const cleanCode = roomCodeInput.value.trim().toUpperCase();
+        if (cleanCode) {
+          currentRoomId = 'private_' + cleanCode;
+          subscribeToRoom(currentRoomId);
+        }
+      }
+
+      const rawName = document.getElementById('nicknameInput').value.trim();
+      const nickname = rawName || ('Cobra' + Math.floor(10 + Math.random() * 89));
+
+      me = createSnakeEntity(
+        currentUser ? currentUser.uid : 'local_player',
+        nickname,
+        selectedColor,
+        selectedSkin,
+        false
+      );
+
+      turboEnergy = 100;
+      turboOverheated = false;
+      isBoosting = false;
+
+      if (orbs.length === 0) orbs = generateInitialOrbs(230);
+      syncBotsPopulation();
+
+      lobbyOverlay.classList.add('hidden');
+      document.getElementById('gameOverOverlay').classList.add('hidden');
+      document.getElementById('hudOverlay').classList.remove('hidden');
+      document.getElementById('hudRoomBadge').textContent = roomMode === 'public'
+        ? '🌐 Pública'
+        : '🔒 ' + currentRoomId.replace('private_', '');
+
+      isPlaying = true;
+      assignNewMission();
+      syncPlayerToCloud(true, false);
+    }
+
+    startGameBtn.addEventListener('click', startMatch);
+    document.getElementById('respawnBtn').addEventListener('click', startMatch);
+
+    document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
+      isPlaying = false;
+      if (me) me.alive = false;
+      await removePlayerFromCloud();
+      document.getElementById('hudOverlay').classList.add('hidden');
+      document.getElementById('gameOverOverlay').classList.add('hidden');
+      lobbyOverlay.classList.remove('hidden');
+    });
+
+    document.getElementById('toggleGfxBtn').addEventListener('click', (e) => {
+      lowGraphics = !lowGraphics;
+      e.target.textContent = lowGraphics ? '⚡ Leve' : '✨ HD';
+    });
+    document.getElementById('toggleGfxBtn').textContent = lowGraphics ? '⚡ Leve' : '✨ HD';
+
+    // ==================== SINCRONIZAÇÃO EM NUVEM (85ms OTIMIZADO) ====================
+    async function syncPlayerToCloud(force = false, activeBoost = false) {
+      if (!isOnlineConnected || !currentUser || !me) return;
+      const now = Date.now();
+      if (!force && now - lastNetSyncTime < 85) return;
+      lastNetSyncTime = now;
+
+      const step = me.segments.length > 55 ? 2 : 1;
+      const compactSegments = [];
+      for (let i = 0; i < me.segments.length; i += step) {
+        compactSegments.push({
+          x: Math.round(me.segments[i].x),
+          y: Math.round(me.segments[i].y)
+        });
+      }
+
+      try {
+        await setDoc(doc(db, 'rooms', currentRoomId, 'players', currentUser.uid), {
+          name: me.name,
+          color: me.color,
+          skin: me.skin,
+          alive: me.alive,
+          x: Math.round(me.x),
+          y: Math.round(me.y),
+          angle: Number(me.angle.toFixed(2)),
+          boosting: activeBoost,
+          score: Math.round(me.score),
+          kills: me.kills,
+          ghost: me.powers.ghost > 0,
+          segments: compactSegments,
+          lastSeen: now
+        });
+      } catch (_) {}
+    }
+
+    async function removePlayerFromCloud() {
+      if (!isOnlineConnected || !currentUser) return;
+      try {
+        await deleteDoc(doc(db, 'rooms', currentRoomId, 'players', currentUser.uid));
+      } catch (_) {}
+    }
+
+    async function syncOrbsToCloud() {
+      if (!isOnlineConnected || !currentUser) return;
+      const now = Date.now();
+      if (now - lastOrbSyncTime < 1500) return;
+      lastOrbSyncTime = now;
+      try {
+        await setDoc(doc(db, 'rooms', currentRoomId, 'state', 'orbs'), {
+          items: orbs,
+          updatedAt: now
+        });
+      } catch (_) {}
+    }
+
+    window.addEventListener('beforeunload', () => {
+      removePlayerFromCloud();
+    });
+
+    // ==================== CONTROLES MOUSE / TECLADO / TOUCH ====================
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -90,115 +957,645 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    window.addEventListener('mousemove', (e) => { mouseScreenX = e.clientX; mouseScreenY = e.clientY; });
-
-    function startMatch() {
-      const rawName = nicknameInput.value.trim();
-      const nickname = rawName || ('Cobra' + Math.floor(10 + Math.random() * 89));
-
-      const x = ARENA_SIZE / 2;
-      const y = ARENA_SIZE / 2;
-      const segments = [];
-      for (let i = 0; i < INITIAL_LENGTH; i++) {
-        segments.push({ x: x - i * SEGMENT_SPACING, y: y });
-      }
-
-      me = { name: nickname, color: '#10b981', alive: true, x, y, angle: 0, targetAngle: 0, score: 10, segments };
-
-      lobbyOverlay.style.display = 'none';
-      hudOverlay.style.display = 'flex';
-      isPlaying = true;
-    }
-
-    startGameBtn.addEventListener('click', startMatch);
-
-    leaveRoomBtn.addEventListener('click', () => {
-      isPlaying = false;
-      if (me) me.alive = false;
-      me = null;
-      hudOverlay.style.display = 'none';
-      lobbyOverlay.style.display = 'flex';
+    window.addEventListener('mousemove', (e) => {
+      mouseScreenX = e.clientX;
+      mouseScreenY = e.clientY;
     });
 
+    window.addEventListener('mousedown', (e) => {
+      if (e.button === 0 && isPlaying) isBoosting = true;
+    });
+    window.addEventListener('mouseup', () => {
+      isBoosting = false;
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && isPlaying) isBoosting = true;
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') isBoosting = false;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (!isPlaying) return;
+      const t = e.touches[0];
+      mouseScreenX = t.clientX;
+      mouseScreenY = t.clientY;
+      const now = performance.now();
+      if (now - lastTapTime < 280) {
+        isBoosting = true;
+      }
+      lastTapTime = now;
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (!isPlaying) return;
+      const t = e.touches[0];
+      mouseScreenX = t.clientX;
+      mouseScreenY = t.clientY;
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', () => {
+      isBoosting = false;
+    });
+
+    // ==================== FÍSICA E MECÂNICAS ====================
+    function growSnake(snake, amount) {
+      const tail = snake.segments[snake.segments.length - 1];
+      for (let i = 0; i < amount; i++) {
+        snake.segments.push({ x: tail.x, y: tail.y });
+      }
+    }
+
+    function spawnDeathOrbs(snake) {
+      const step = Math.max(1, Math.floor(snake.segments.length / 26));
+      for (let i = 0; i < snake.segments.length; i += step) {
+        const seg = snake.segments[i];
+        orbs.push({
+          id: 'drop_' + Math.random().toString(36).slice(2, 9),
+          x: seg.x + (Math.random() - 0.5) * 16,
+          y: seg.y + (Math.random() - 0.5) * 16,
+          type: 'food',
+          color: snake.color,
+          value: 3,
+          radius: 8.5
+        });
+      }
+      if (orbs.length > 340) orbs.splice(0, orbs.length - 340);
+      syncOrbsToCloud();
+    }
+
+    function eliminateMe(reason) {
+      if (!me || !me.alive) return;
+      me.alive = false;
+      isPlaying = false;
+      playTone(150, 0.35, 'sawtooth', 0.09);
+      spawnDeathOrbs(me);
+      syncPlayerToCloud(true, false);
+
+      document.getElementById('deathReasonText').textContent = reason;
+      document.getElementById('finalScoreText').textContent = Math.round(me.score);
+      document.getElementById('finalKillsText').textContent = me.kills;
+      document.getElementById('hudOverlay').classList.add('hidden');
+      document.getElementById('gameOverOverlay').classList.remove('hidden');
+    }
+
+    function updateSnakeMovement(snake, dt, boosting) {
+      if (!snake.alive) return;
+
+      if (snake.powers.magnet > 0) snake.powers.magnet = Math.max(0, snake.powers.magnet - dt);
+      if (snake.powers.vision > 0) snake.powers.vision = Math.max(0, snake.powers.vision - dt);
+      if (snake.powers.ghost > 0) snake.powers.ghost = Math.max(0, snake.powers.ghost - dt);
+
+      const inIce = Math.hypot(snake.x - ICE_ZONE.x, snake.y - ICE_ZONE.y) < ICE_ZONE.r;
+      const inSwamp = Math.hypot(snake.x - SWAMP_ZONE.x, snake.y - SWAMP_ZONE.y) < SWAMP_ZONE.r;
+
+      let speed = boosting ? BOOST_SPEED : BASE_SPEED;
+      if (inIce) speed *= 1.18;
+      if (inSwamp) speed *= 0.84;
+
+      const turnRate = inIce ? 3.2 : 5.4;
+      const diff = normalizeAngle(snake.targetAngle - snake.angle);
+      snake.angle += Math.sign(diff) * Math.min(Math.abs(diff), turnRate * dt);
+
+      snake.x += Math.cos(snake.angle) * speed * dt;
+      snake.y += Math.sin(snake.angle) * speed * dt;
+
+      const borderMargin = 45;
+      if (snake.x < borderMargin) { snake.x = borderMargin; snake.angle = normalizeAngle(0); }
+      if (snake.x > ARENA_SIZE - borderMargin) { snake.x = ARENA_SIZE - borderMargin; snake.angle = normalizeAngle(Math.PI); }
+      if (snake.y < borderMargin) { snake.y = borderMargin; snake.angle = normalizeAngle(Math.PI / 2); }
+      if (snake.y > ARENA_SIZE - borderMargin) { snake.y = ARENA_SIZE - borderMargin; snake.angle = normalizeAngle(-Math.PI / 2); }
+
+      snake.segments[0].x = snake.x;
+      snake.segments[0].y = snake.y;
+      for (let i = 1; i < snake.segments.length; i++) {
+        const prev = snake.segments[i - 1];
+        const curr = snake.segments[i];
+        const dx = prev.x - curr.x;
+        const dy = prev.y - curr.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > SEGMENT_SPACING) {
+          const a = Math.atan2(dy, dx);
+          curr.x = prev.x - Math.cos(a) * SEGMENT_SPACING;
+          curr.y = prev.y - Math.sin(a) * SEGMENT_SPACING;
+        }
+      }
+
+      const baseCollectRadius = 22;
+      const magnetRadius = (snake.powers.magnet > 0 || (globalEvent && globalEvent.type === 'super_magnet')) ? 165 : 0;
+      let orbsModified = false;
+
+      for (let i = orbs.length - 1; i >= 0; i--) {
+        const orb = orbs[i];
+        const dx = snake.x - orb.x;
+        const dy = snake.y - orb.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (magnetRadius > 0 && orb.type !== 'poison' && dist < magnetRadius && dist > baseCollectRadius) {
+          const pullAngle = Math.atan2(dy, dx);
+          orb.x += Math.cos(pullAngle) * 340 * dt;
+          orb.y += Math.sin(pullAngle) * 340 * dt;
+        }
+
+        if (dist < baseCollectRadius + orb.radius) {
+          if (orb.type === 'poison') {
+            if (snake.powers.ghost <= 0) {
+              snake.score = Math.max(5, snake.score - 6);
+              if (snake.segments.length > 10) snake.segments.splice(-3, 3);
+              if (!snake.isBot) playTone(190, 0.14, 'sawtooth', 0.06);
+            }
+          } else if (orb.type === 'magnet') {
+            snake.powers.magnet = 14;
+            snake.score += 5;
+            if (!snake.isBot) {
+              playTone(540, 0.12, 'triangle', 0.07);
+              progressMission('collect_power', 1);
+            }
+          } else if (orb.type === 'vision') {
+            snake.powers.vision = 14;
+            snake.score += 5;
+            if (!snake.isBot) {
+              playTone(620, 0.12, 'triangle', 0.07);
+              progressMission('collect_power', 1);
+            }
+          } else if (orb.type === 'ghost') {
+            snake.powers.ghost = 10;
+            snake.score += 5;
+            if (!snake.isBot) {
+              playTone(720, 0.14, 'sine', 0.07);
+              progressMission('collect_power', 1);
+            }
+          } else {
+            const mult = (globalEvent && globalEvent.type === 'gold_rush') ? 2 : 1;
+            snake.score += orb.value * mult;
+            if (Math.floor(snake.score / 5) > snake.segments.length - INITIAL_LENGTH) {
+              growSnake(snake, 1);
+            }
+            if (!snake.isBot) {
+              playTone(440 + Math.random() * 140, 0.05, 'sine', 0.03);
+              progressMission('eat_orbs', 1);
+              if (inSwamp) progressMission('swamp_orbs', 1);
+            }
+          }
+
+          orbs[i] = createRandomOrb(orb.id);
+          orbsModified = true;
+        }
+      }
+
+      if (orbsModified && !snake.isBot) {
+        syncOrbsToCloud();
+      }
+    }
+
+    function updateBots(dt) {
+      syncBotsPopulation();
+      for (const bot of bots) {
+        bot.aiTimer -= dt;
+        if (bot.aiTimer <= 0) {
+          bot.aiTimer = 0.25 + Math.random() * 0.35;
+          let bestOrb = null;
+          let bestDist = 480;
+          for (let i = 0; i < orbs.length; i += 2) {
+            const o = orbs[i];
+            if (o.type === 'poison') continue;
+            const d = Math.hypot(o.x - bot.x, o.y - bot.y);
+            if (d < bestDist) {
+              bestDist = d;
+              bestOrb = o;
+            }
+          }
+          if (bestOrb) {
+            bot.targetAngle = Math.atan2(bestOrb.y - bot.y, bestOrb.x - bot.x);
+          } else {
+            bot.targetAngle += (Math.random() - 0.5) * 1.4;
+          }
+        }
+        updateSnakeMovement(bot, dt, false);
+      }
+    }
+
+    function checkCollisions() {
+      if (!me || !me.alive) return;
+
+      if (me.powers.ghost <= 0) {
+        const hitRadius = 13.5;
+
+        for (let b = bots.length - 1; b >= 0; b--) {
+          const bot = bots[b];
+          if (!bot.alive) continue;
+          for (let i = 2; i < bot.segments.length; i++) {
+            const seg = bot.segments[i];
+            if (Math.hypot(me.x - seg.x, me.y - seg.y) < hitRadius) {
+              eliminateMe(`Você cortou o caminho de ${bot.name}!`);
+              return;
+            }
+          }
+        }
+
+        for (const [, rp] of remotePlayers) {
+          if (!rp.alive || rp.ghost || !Array.isArray(rp.segments)) continue;
+          for (let i = 2; i < rp.segments.length; i++) {
+            const seg = rp.segments[i];
+            if (Math.hypot(me.x - seg.x, me.y - seg.y) < hitRadius) {
+              eliminateMe(`Você colidiu com ${rp.name || 'um adversário'}!`);
+              return;
+            }
+          }
+        }
+      }
+
+      for (let b = bots.length - 1; b >= 0; b--) {
+        const bot = bots[b];
+        if (!bot.alive || bot.powers.ghost > 0) continue;
+        for (let i = 2; i < me.segments.length; i++) {
+          const seg = me.segments[i];
+          if (Math.hypot(bot.x - seg.x, bot.y - seg.y) < 14) {
+            bot.alive = false;
+            me.kills += 1;
+            me.score += 25;
+            growSnake(me, 5);
+            spawnDeathOrbs(bot);
+            bots.splice(b, 1);
+            playTone(580, 0.14, 'triangle', 0.08);
+            break;
+          }
+        }
+      }
+    }
+
+    // ==================== RENDERIZAÇÃO ====================
+    function getSegmentColor(snake, index) {
+      if (snake.skin === 'striped') {
+        return index % 4 < 2 ? snake.color : '#f8fafc';
+      }
+      if (snake.skin === 'neon') {
+        return index % 2 === 0 ? snake.color : '#7af5d8';
+      }
+      if (snake.skin === 'rainbow') {
+        const hue = (index * 16 + performance.now() * 0.12) % 360;
+        return `hsl(${hue}, 90%, 58%)`;
+      }
+      if (snake.skin === 'brasil') {
+        const mod = index % 6;
+        if (mod < 2) return '#10b981';
+        if (mod < 4) return '#facc15';
+        return '#2563eb';
+      }
+      return snake.color;
+    }
+
+    function drawSnake(snake, isLocal = false) {
+      const segs = snake.segments;
+      if (!segs || segs.length === 0) return;
+
+      const isGhost = isLocal ? (snake.powers && snake.powers.ghost > 0) : Boolean(snake.ghost);
+      ctx.save();
+      if (isGhost) ctx.globalAlpha = 0.48;
+
+      const headRadius = 11.5 + Math.min(7, (snake.score || 10) * 0.015);
+
+      for (let i = segs.length - 1; i >= 0; i--) {
+        const seg = segs[i];
+        const ratio = 1 - (i / segs.length) * 0.38;
+        const r = headRadius * ratio;
+
+        ctx.beginPath();
+        ctx.arc(seg.x, seg.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = getSegmentColor(snake, i);
+        ctx.fill();
+      }
+
+      const head = segs[0];
+      const ang = snake.angle || 0;
+      const eyeDist = headRadius * 0.45;
+
+      for (const side of [-1, 1]) {
+        const ex = head.x + Math.cos(ang + side * 0.55) * eyeDist;
+        const ey = head.y + Math.sin(ang + side * 0.55) * eyeDist;
+        ctx.beginPath();
+        ctx.arc(ex, ey, headRadius * 0.28, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(ex + Math.cos(ang) * 1.4, ey + Math.sin(ang) * 1.4, headRadius * 0.14, 0, Math.PI * 2);
+        ctx.fillStyle = '#090d16';
+        ctx.fill();
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = isLocal ? '#7af5d8' : '#e2e8f0';
+      ctx.fillText(snake.name || 'Jogador', head.x, head.y - headRadius - 8);
+
+      ctx.restore();
+    }
+
+    function drawOrbs(camX, camY, viewW, viewH) {
+      const now = performance.now();
+      for (const orb of orbs) {
+        if (
+          orb.x < camX - 60 || orb.x > camX + viewW + 60 ||
+          orb.y < camY - 60 || orb.y > camY + viewH + 60
+        ) continue;
+
+        if (orb.type === 'food') {
+          ctx.beginPath();
+          ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+          ctx.fillStyle = orb.color;
+          ctx.fill();
+          continue;
+        }
+
+        const pulse = 1 + Math.sin(now * 0.006) * 0.14;
+
+        if (orb.type === 'poison') {
+          ctx.save();
+          ctx.translate(orb.x, orb.y);
+          ctx.rotate(now * 0.002);
+          ctx.beginPath();
+          const spikes = 8;
+          for (let s = 0; s < spikes * 2; s++) {
+            const rad = s % 2 === 0 ? orb.radius * 1.35 : orb.radius * 0.62;
+            const a = (s * Math.PI) / spikes;
+            if (s === 0) ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad);
+            else ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+          }
+          ctx.closePath();
+          ctx.fillStyle = '#9333ea';
+          ctx.fill();
+          ctx.strokeStyle = '#f3e8ff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.restore();
+          continue;
+        }
+
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, orb.radius * 1.65 * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = orb.color + '33';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+        ctx.fillStyle = orb.color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const icon = orb.type === 'magnet' ? '🧲' : orb.type === 'vision' ? '👁️' : '👻';
+        ctx.fillText(icon, orb.x, orb.y + 0.5);
+      }
+    }
+
+    function drawEnvironment() {
+      ctx.fillStyle = '#070b14';
+      ctx.fillRect(0, 0, ARENA_SIZE, ARENA_SIZE);
+
+      ctx.strokeStyle = '#11192c';
+      ctx.lineWidth = 1;
+      const gridStep = 100;
+      ctx.beginPath();
+      for (let x = 0; x <= ARENA_SIZE; x += gridStep) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ARENA_SIZE);
+      }
+      for (let y = 0; y <= ARENA_SIZE; y += gridStep) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(ARENA_SIZE, y);
+      }
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(ICE_ZONE.x, ICE_ZONE.y, ICE_ZONE.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(SWAMP_ZONE.x, SWAMP_ZONE.y, SWAMP_ZONE.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.25)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      for (const p of PORTALS) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 34, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + '26';
+        ctx.fill();
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(0, 0, ARENA_SIZE, ARENA_SIZE);
+    }
+
+    function updateHUD() {
+      if (!me) return;
+      document.getElementById('hudScore').textContent = Math.round(me.score);
+      document.getElementById('hudKills').textContent = me.kills;
+
+      document.getElementById('turboBar').style.width = Math.round(turboEnergy) + '%';
+      document.getElementById('turboPct').textContent = Math.round(turboEnergy) + '%';
+      const turboLabel = document.getElementById('turboLabel');
+      if (turboOverheated) {
+        turboLabel.textContent = '🔥 RESFRIANDO';
+        turboLabel.className = 'text-rose-400';
+      } else {
+        turboLabel.textContent = '⚡ TURBO';
+        turboLabel.className = 'text-cyan-300';
+      }
+
+      const powersDiv = document.getElementById('activePowersHud');
+      let badges = '';
+      if (me.powers.magnet > 0) badges += `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-[10px] font-bold text-amber-300">🧲 ${Math.ceil(me.powers.magnet)}s</span>`;
+      if (me.powers.vision > 0) badges += `<span class="px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/40 text-[10px] font-bold text-cyan-300">👁️ ${Math.ceil(me.powers.vision)}s</span>`;
+      if (me.powers.ghost > 0) badges += `<span class="px-1.5 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-[10px] font-bold text-purple-300">👻 ${Math.ceil(me.powers.ghost)}s</span>`;
+      powersDiv.innerHTML = badges;
+
+      const all = [];
+      if (me.alive) all.push({ name: me.name + ' (Você)', score: me.score, isMe: true });
+      remotePlayers.forEach(rp => {
+        if (rp.alive) all.push({ name: rp.name || 'Jogador', score: rp.score || 10, isMe: false });
+      });
+      bots.forEach(b => {
+        if (b.alive) all.push({ name: b.name, score: b.score, isMe: false });
+      });
+      all.sort((a, b) => b.score - a.score);
+
+      const listEl = document.getElementById('leaderboardList');
+      listEl.innerHTML = all.slice(0, 5).map((item, idx) => `
+        <div class="flex items-center justify-between gap-1 ${item.isMe ? 'text-emerald-300 font-black' : 'text-slate-300'}">
+          <span class="truncate">${idx + 1}. ${item.name}</span>
+          <span class="font-bold">${Math.round(item.score)}</span>
+        </div>
+      `).join('');
+    }
+
+    function drawMinimap() {
+      const w = miniCanvas.width;
+      const h = miniCanvas.height;
+      miniCtx.fillStyle = '#070b14';
+      miniCtx.fillRect(0, 0, w, h);
+
+      const scale = w / ARENA_SIZE;
+
+      miniCtx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+      miniCtx.beginPath();
+      miniCtx.arc(ICE_ZONE.x * scale, ICE_ZONE.y * scale, ICE_ZONE.r * scale, 0, Math.PI * 2);
+      miniCtx.fill();
+
+      miniCtx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+      miniCtx.beginPath();
+      miniCtx.arc(SWAMP_ZONE.x * scale, SWAMP_ZONE.y * scale, SWAMP_ZONE.r * scale, 0, Math.PI * 2);
+      miniCtx.fill();
+
+      miniCtx.fillStyle = '#f43f5e';
+      for (const b of bots) {
+        if (!b.alive) continue;
+        miniCtx.fillRect(b.x * scale - 1.5, b.y * scale - 1.5, 3, 3);
+      }
+      miniCtx.fillStyle = '#38bdf8';
+      remotePlayers.forEach(rp => {
+        if (!rp.alive) return;
+        miniCtx.fillRect(rp.x * scale - 2, rp.y * scale - 2, 4, 4);
+      });
+
+      if (me && me.alive) {
+        miniCtx.fillStyle = '#34d399';
+        miniCtx.beginPath();
+        miniCtx.arc(me.x * scale, me.y * scale, 3.2, 0, Math.PI * 2);
+        miniCtx.fill();
+      }
+    }
+
+    // ==================== LOOP PRINCIPAL ====================
     function gameLoop(now) {
       const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
+      // Suaviza jogadores remotos a 60 FPS tanto no lobby quanto na partida
+      updateRemotePlayersSmooth(dt);
+
+      if (isPlaying) {
+        if (!globalEvent && now > nextEventCheck) {
+          triggerGlobalEvent();
+        } else if (globalEvent) {
+          globalEvent.timeLeft -= dt;
+          document.getElementById('globalEventTimer').textContent = Math.max(0, Math.ceil(globalEvent.timeLeft)) + 's';
+          if (globalEvent.timeLeft <= 0) {
+            globalEvent = null;
+            document.getElementById('globalEventCard').classList.add('hidden');
+            nextEventCheck = now + 35000;
+          }
+        }
+
+        if (currentMission) {
+          currentMission.timeLeft -= dt;
+          if (currentMission.timeLeft <= 0) {
+            currentMission = null;
+            document.getElementById('missionCard').classList.add('hidden');
+            setTimeout(() => { if (isPlaying) assignNewMission(); }, 7000);
+          } else {
+            if (currentMission.type === 'ice_survive' && me && me.alive) {
+              if (Math.hypot(me.x - ICE_ZONE.x, me.y - ICE_ZONE.y) < ICE_ZONE.r) {
+                progressMission('ice_survive', dt);
+              }
+            }
+            updateMissionUI();
+          }
+        }
+      }
+
+      if (isPlaying && me && me.alive) {
+        me.targetAngle = Math.atan2(
+          mouseScreenY - canvas.height / 2,
+          mouseScreenX - canvas.width / 2
+        );
+
+        const canBoost = isBoosting && !turboOverheated && turboEnergy > 0 && me.score > 11;
+        if (canBoost) {
+          turboEnergy = Math.max(0, turboEnergy - 34 * dt);
+          me.score = Math.max(10, me.score - 2.2 * dt);
+          if (turboEnergy <= 0) turboOverheated = true;
+        } else {
+          turboEnergy = Math.min(100, turboEnergy + 22 * dt);
+          if (turboOverheated && turboEnergy >= 45) turboOverheated = false;
+        }
+
+        updateSnakeMovement(me, dt, canBoost);
+
+        if (portalCooldown > 0) portalCooldown -= dt;
+        if (portalCooldown <= 0) {
+          for (const p of PORTALS) {
+            if (Math.hypot(me.x - p.x, me.y - p.y) < 34) {
+              me.x = p.targetX;
+              me.y = p.targetY;
+              for (const seg of me.segments) {
+                seg.x = me.x;
+                seg.y = me.y;
+              }
+              portalCooldown = 3.5;
+              playTone(760, 0.16, 'sine', 0.08);
+              break;
+            }
+          }
+        }
+
+        updateBots(dt);
+        checkCollisions();
+        syncPlayerToCloud(false, canBoost);
+        updateHUD();
+        drawMinimap();
+      } else {
+        updateBots(dt);
+      }
+
+      const focusX = (me && me.alive) ? me.x : (ARENA_SIZE / 2 + Math.cos(now * 0.0002) * 500);
+      const focusY = (me && me.alive) ? me.y : (ARENA_SIZE / 2 + Math.sin(now * 0.0002) * 500);
+      const zoom = (me && me.alive && me.powers.vision > 0) ? 0.78 : 1.0;
+
+      ctx.save();
       ctx.fillStyle = '#060a12';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      if (isPlaying && me && me.alive) {
-        me.targetAngle = Math.atan2(mouseScreenY - canvas.height / 2, mouseScreenX - canvas.width / 2);
-        const diff = me.targetAngle - me.angle;
-        me.angle += Math.sign(diff) * Math.min(Math.abs(diff), 5.4 * dt);
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-focusX, -focusY);
 
-        me.x += Math.cos(me.angle) * BASE_SPEED * dt;
-        me.y += Math.sin(me.angle) * BASE_SPEED * dt;
+      drawEnvironment();
+      drawOrbs(
+        focusX - (canvas.width / 2) / zoom,
+        focusY - (canvas.height / 2) / zoom,
+        canvas.width / zoom,
+        canvas.height / zoom
+      );
 
-        // Limites da arena
-        me.x = Math.max(30, Math.min(ARENA_SIZE - 30, me.x));
-        me.y = Math.max(30, Math.min(ARENA_SIZE - 30, me.y));
-
-        me.segments[0].x = me.x;
-        me.segments[0].y = me.y;
-        for (let i = 1; i < me.segments.length; i++) {
-          const prev = me.segments[i - 1], curr = me.segments[i];
-          const dx = prev.x - curr.x, dy = prev.y - curr.y, dist = Math.hypot(dx, dy);
-          if (dist > SEGMENT_SPACING) {
-            const a = Math.atan2(dy, dx);
-            curr.x = prev.x - Math.cos(a) * SEGMENT_SPACING;
-            curr.y = prev.y - Math.sin(a) * SEGMENT_SPACING;
-          }
-        }
-
-        // Colisão com orbes
-        for (let i = orbs.length - 1; i >= 0; i--) {
-          const o = orbs[i];
-          if (Math.hypot(me.x - o.x, me.y - o.y) < 20) {
-            me.score += 1;
-            if (me.score % 5 === 0) {
-              const tail = me.segments[me.segments.length - 1];
-              me.segments.push({ x: tail.x, y: tail.y });
-            }
-            orbs[i] = {
-              x: 200 + Math.random() * (ARENA_SIZE - 400),
-              y: 200 + Math.random() * (ARENA_SIZE - 400),
-              color: ORB_PALETTE[Math.floor(Math.random() * ORB_PALETTE.length)],
-              value: 1,
-              radius: 6
-            };
-          }
-        }
-
-        document.getElementById('hudScore').textContent = Math.round(me.score);
-
-        ctx.save();
-        ctx.translate(canvas.width / 2 - me.x, canvas.height / 2 - me.y);
-
-        // Grade
-        ctx.strokeStyle = '#11192c';
-        ctx.lineWidth = 1;
-        for (let x = 0; x <= ARENA_SIZE; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ARENA_SIZE); ctx.stroke(); }
-        for (let y = 0; y <= ARENA_SIZE; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(ARENA_SIZE, y); ctx.stroke(); }
-
-        // Orbes
-        for (const o of orbs) {
-          ctx.beginPath(); ctx.arc(o.x, o.y, o.radius, 0, Math.PI * 2);
-          ctx.fillStyle = o.color; ctx.fill();
-        }
-
-        // Desenhar cobrinha
-        for (let i = me.segments.length - 1; i >= 0; i--) {
-          const seg = me.segments[i];
-          ctx.beginPath();
-          ctx.arc(seg.x, seg.y, 12, 0, Math.PI * 2);
-          ctx.fillStyle = '#10b981';
-          ctx.fill();
-        }
-
-        ctx.restore();
+      for (const b of bots) {
+        if (b.alive) drawSnake(b, false);
+      }
+      remotePlayers.forEach(rp => {
+        if (rp.alive) drawSnake(rp, false);
+      });
+      if (me && me.alive) {
+        drawSnake(me, true);
       }
 
+      ctx.restore();
       requestAnimationFrame(gameLoop);
     }
 
