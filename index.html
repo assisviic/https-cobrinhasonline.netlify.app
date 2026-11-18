@@ -155,14 +155,18 @@
     </div>
   </div>
 
-  <!-- TELA DE GAME OVER -->
-  <div id="gameOverOverlay" style="display: none;" class="fixed inset-0 z-40 items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
-    <div class="w-full max-w-[360px] rounded-3xl bg-[#0e1526] border border-rose-500/30 p-6 text-center shadow-2xl">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-3xl mb-3">
+  <!-- TELA DE GAME OVER (SOBRE A ARENA AO VIVO) -->
+  <div id="gameOverOverlay" style="display: none;" class="fixed inset-0 z-40 items-center justify-center p-4 bg-slate-950/45 backdrop-blur-[2px]">
+    <div class="w-full max-w-[360px] rounded-3xl bg-[#0e1526]/95 border border-rose-500/40 p-6 text-center shadow-2xl">
+      <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-[10px] font-extrabold uppercase tracking-wider text-emerald-300 mb-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+        Arena ao vivo em andamento
+      </div>
+      <div class="mx-auto flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-3xl mb-3">
         💥
       </div>
       <h2 class="text-2xl font-black text-white">Você foi eliminado!</h2>
-      <p id="deathReasonText" class="text-xs text-slate-400 mt-1 mb-4">Você colidiu com outro jogador.</p>
+      <p id="deathReasonText" class="text-xs text-slate-300 mt-1 mb-4">Você colidiu com outro jogador.</p>
 
       <div class="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 mb-5">
         <div>
@@ -177,10 +181,10 @@
 
       <div class="flex flex-col gap-2">
         <button id="respawnBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wide shadow-lg shadow-emerald-500/25 transition cursor-pointer">
-          JOGAR NOVAMENTE
+          VOLTAR PARA A PARTIDA
         </button>
         <button id="gameOverLobbyBtn" type="button" class="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wide transition cursor-pointer">
-          VOLTAR AO LOBBY
+          SAIR DA SALA / LOBBY
         </button>
       </div>
     </div>
@@ -374,6 +378,7 @@
     let unsubPlayers = null;
     let unsubOrbs = null;
 
+    let inRoomSession = false;
     let isPlaying = false;
     let lowGraphics = window.innerWidth < 768;
     let lastFrameTime = performance.now();
@@ -382,6 +387,7 @@
     let lastMagnetBatchTime = performance.now();
 
     let me = null;
+    let lastDeathPos = { x: ARENA_SIZE / 2, y: ARENA_SIZE / 2 };
     let remotePlayers = new Map();
     let bots = [];
     let orbs = [];
@@ -483,6 +489,7 @@
     const controlTipBox = document.getElementById('controlTipBox');
 
     function showLobbyScreen() {
+      inRoomSession = false;
       isPlaying = false;
       if (missionTimerHandle) {
         clearTimeout(missionTimerHandle);
@@ -908,7 +915,10 @@
 
     // ==================== INICIAR / ENTRAR NA PARTIDA ====================
     function startMatch() {
-      if (roomMode === 'private') {
+      const wasInSameRoom = inRoomSession;
+      inRoomSession = true;
+
+      if (!wasInSameRoom && roomMode === 'private') {
         const cleanCode = roomCodeInput.value.trim().toUpperCase();
         if (cleanCode) {
           currentRoomId = 'private_' + cleanCode;
@@ -1082,6 +1092,7 @@
 
     function eliminateMe(reason) {
       if (!me || !me.alive || spawnProtection > 0) return;
+      lastDeathPos = { x: me.x, y: me.y };
       me.alive = false;
       isPlaying = false;
       if (missionTimerHandle) {
@@ -1121,11 +1132,9 @@
       const maxTurnAngle = MAX_NECK_TURNS * FULL_CIRCLE_RAD;
       const diff = normalizeAngle(snake.targetAngle - snake.angle);
 
-      // Se atingiu 10 voltas no mesmo sentido, limita a curvatura fechada para o corpo acompanhar em frente
       if (snake.neckLocked) {
         turnRate *= 0.14;
       } else if (snake.neckTurns >= 7.5 && Math.sign(diff) === Math.sign(snake.cumulativeTurnAngle)) {
-        // Vai endurecendo o pescoço gradualmente entre 7.5 e 10 voltas
         const stiffness = 1 - ((snake.neckTurns - 7.5) / 2.5) * 0.75;
         turnRate *= Math.max(0.2, stiffness);
       }
@@ -1137,14 +1146,12 @@
       const isTightCircling = angularRate > 2.3;
 
       if (isTightCircling && !snake.neckLocked) {
-        // Se inverter o sentido do giro, desenrola mais rápido
         if (Math.sign(appliedStep) !== Math.sign(snake.cumulativeTurnAngle) && Math.abs(snake.cumulativeTurnAngle) > 0.1) {
           snake.cumulativeTurnAngle += appliedStep * 1.8;
         } else {
           snake.cumulativeTurnAngle += appliedStep;
         }
       } else {
-        // Ao seguir reto ou abrir o raio da curva, desenrola as voltas acumuladas conforme avança
         const unwindRate = snake.neckLocked ? FULL_CIRCLE_RAD * 1.65 : FULL_CIRCLE_RAD * 1.15;
         const unwind = Math.min(Math.abs(snake.cumulativeTurnAngle), unwindRate * dt);
         snake.cumulativeTurnAngle -= Math.sign(snake.cumulativeTurnAngle) * unwind;
@@ -1154,7 +1161,6 @@
         snake.cumulativeTurnAngle = Math.sign(snake.cumulativeTurnAngle) * maxTurnAngle;
         snake.neckLocked = true;
       } else if (snake.neckLocked && Math.abs(snake.cumulativeTurnAngle) <= FULL_CIRCLE_RAD * 6.5) {
-        // Só destrava giro fechado depois que o corpo acompanhou e desenrolou para <= 6.5 voltas
         snake.neckLocked = false;
       }
 
@@ -1169,7 +1175,6 @@
       if (snake.y < borderMargin) { snake.y = borderMargin; snake.angle = normalizeAngle(Math.PI / 2); }
       if (snake.y > ARENA_SIZE - borderMargin) { snake.y = ARENA_SIZE - borderMargin; snake.angle = normalizeAngle(-Math.PI / 2); }
 
-      // Atualiza segmentos para que o corpo acompanhe continuamente o deslocamento da cabeça
       snake.segments[0].x = snake.x;
       snake.segments[0].y = snake.y;
       for (let i = 1; i < snake.segments.length; i++) {
@@ -1272,7 +1277,6 @@
           }
         }
 
-        // 1. Evasão de bordas e corpos próximos
         let dangerX = 0;
         let dangerY = 0;
         let dangerCount = 0;
@@ -1316,7 +1320,6 @@
           }
         }
 
-        // 2. Decisão: coleta principal + botes oportunistas ocasionais
         if (bot.aiTimer <= 0) {
           bot.aiTimer = 0.28 + Math.random() * 0.24;
 
@@ -1388,7 +1391,6 @@
           }
         }
 
-        // Se o bot estiver cercado e próximo do limite de voltas, direciona para saída em frente
         if (dangerCount > 0 && !bot.neckLocked) {
           bot.targetAngle = Math.atan2(dangerY, dangerX);
         } else if (bot.neckLocked) {
@@ -1737,6 +1739,42 @@
       }
     }
 
+    // ==================== CÂMERA AO VIVO (JOGADOR OU ESPECTADOR DA SALA) ====================
+    function getCameraFocus(now) {
+      if (me && me.alive) {
+        return { x: me.x, y: me.y };
+      }
+
+      if (inRoomSession) {
+        let topLeader = null;
+        let topScore = -Infinity;
+
+        remotePlayers.forEach(rp => {
+          if (rp.alive && (rp.score || 0) > topScore) {
+            topScore = rp.score || 0;
+            topLeader = rp;
+          }
+        });
+
+        for (const b of bots) {
+          if (b.alive && (b.score || 0) > topScore) {
+            topScore = b.score || 0;
+            topLeader = b;
+          }
+        }
+
+        if (topLeader) {
+          return { x: topLeader.x, y: topLeader.y };
+        }
+        return lastDeathPos;
+      }
+
+      return {
+        x: ARENA_SIZE / 2 + Math.cos(now * 0.0002) * 500,
+        y: ARENA_SIZE / 2 + Math.sin(now * 0.0002) * 500
+      };
+    }
+
     // ==================== LOOP PRINCIPAL ====================
     function gameLoop(now) {
       const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
@@ -1753,7 +1791,8 @@
 
       updateRemotePlayersSmooth(dt);
 
-      if (isPlaying) {
+      // Eventos globais continuam ocorrendo na sala enquanto houver sessão ativa
+      if (inRoomSession) {
         if (!globalEvent && now > nextEventCheck) {
           triggerGlobalEvent();
         } else if (globalEvent) {
@@ -1765,7 +1804,9 @@
             nextEventCheck = now + 60000;
           }
         }
+      }
 
+      if (isPlaying) {
         if (currentMission) {
           currentMission.timeLeft -= dt;
           if (currentMission.timeLeft <= 0) {
@@ -1817,8 +1858,7 @@
         updateBots(dt);
       }
 
-      const focusX = (me && me.alive) ? me.x : (ARENA_SIZE / 2 + Math.cos(now * 0.0002) * 500);
-      const focusY = (me && me.alive) ? me.y : (ARENA_SIZE / 2 + Math.sin(now * 0.0002) * 500);
+      const focus = getCameraFocus(now);
       const isMobile = canvas.width < 640;
       const baseZoom = isMobile ? 0.84 : 1.0;
       const zoom = (me && me.alive && me.powers.vision > 0) ? baseZoom * 0.80 : baseZoom;
@@ -1829,12 +1869,12 @@
 
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.scale(zoom, zoom);
-      ctx.translate(-focusX, -focusY);
+      ctx.translate(-focus.x, -focus.y);
 
       drawEnvironment();
       drawOrbs(
-        focusX - (canvas.width / 2) / zoom,
-        focusY - (canvas.height / 2) / zoom,
+        focus.x - (canvas.width / 2) / zoom,
+        focus.y - (canvas.height / 2) / zoom,
         canvas.width / zoom,
         canvas.height / zoom
       );
