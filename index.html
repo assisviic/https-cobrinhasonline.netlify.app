@@ -172,9 +172,9 @@
     </div>
   </div>
 
-  <!-- TELA INICIAL / LOBBY -->
-  <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-[#070b14]/90 overflow-y-auto overscroll-contain">
-    <div id="lobbyCard" class="w-full max-w-[390px] my-2 sm:my-auto rounded-[26px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-4 sm:p-6 shadow-2xl text-slate-100">
+  <!-- TELA INICIAL / LOBBY (TOTALMENTE CENTRALIZADA COMO NA SUA FOTO) -->
+  <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-4 bg-[#070b14]/90 overflow-y-auto overscroll-contain">
+    <div id="lobbyCard" class="w-full max-w-[390px] my-auto rounded-[26px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-4 sm:p-6 shadow-2xl text-slate-100">
 
       <!-- Selo Topo -->
       <div class="flex justify-center mb-2 sm:mb-3">
@@ -879,7 +879,7 @@
     startGameBtn.addEventListener('click', startMatch);
     document.getElementById('respawnBtn').addEventListener('click', startMatch);
 
-    // BOTÃO SAIR CORRIGIDO: Força exibição do lobby com flex
+    // BOTÃO SAIR: Oculta HUD e Game Over, e exibe o Lobby perfeitamente centralizado
     document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
       isPlaying = false;
       if (me) me.alive = false;
