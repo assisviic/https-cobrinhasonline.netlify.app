@@ -10,7 +10,6 @@
       box-sizing: border-box;
       user-select: none;
       -webkit-user-select: none;
-      touch-action: none;
     }
     html, body {
       margin: 0;
@@ -25,6 +24,14 @@
       display: block;
       width: 100%;
       height: 100%;
+      touch-action: none;
+    }
+    #lobbyOverlay, #lobbyOverlay * {
+      touch-action: pan-y;
+    }
+    #lobbyOverlay input {
+      user-select: text;
+      -webkit-user-select: text;
     }
     ::-webkit-scrollbar {
       width: 5px;
@@ -165,29 +172,29 @@
     </div>
   </div>
 
-  <!-- TELA INICIAL / LOBBY -->
-  <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-[#070b14]/90 overflow-y-auto">
-    <div class="w-full max-w-[390px] my-auto rounded-[28px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-6 shadow-2xl text-slate-100">
+  <!-- TELA INICIAL / LOBBY (COM SCROLL LIBERADO NO CELULAR) -->
+  <div id="lobbyOverlay" class="fixed inset-0 z-30 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-[#070b14]/90 overflow-y-auto overscroll-contain">
+    <div id="lobbyCard" class="w-full max-w-[390px] my-2 sm:my-auto rounded-[26px] bg-gradient-to-b from-[#132a2c] via-[#0e1526] to-[#0b101e] border border-emerald-500/20 p-4 sm:p-6 shadow-2xl text-slate-100">
 
       <!-- Selo Topo -->
-      <div class="flex justify-center mb-3">
-        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-[11px] font-extrabold tracking-wider text-emerald-300 uppercase">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+      <div class="flex justify-center mb-2 sm:mb-3">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-[10px] sm:text-[11px] font-extrabold tracking-wider text-emerald-300 uppercase">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
           ARENA MULTIPLAYER ONLINE
         </div>
       </div>
 
       <!-- Título e Subtítulo -->
-      <h1 class="text-center text-[36px] leading-none font-black tracking-wide text-[#7af5d8] mb-2">
+      <h1 class="text-center text-[30px] sm:text-[36px] leading-none font-black tracking-wide text-[#7af5d8] mb-1.5 sm:mb-2">
         COBRINHAS
       </h1>
-      <p class="text-center text-[13px] leading-snug text-slate-300/90 mb-5 px-2">
+      <p class="text-center text-xs sm:text-[13px] leading-snug text-slate-300/90 mb-3.5 sm:mb-5 px-1">
         Coma orbes brilhantes, corte o caminho de outros jogadores e domine o ranking!
       </p>
 
       <!-- Apelido -->
-      <div class="mb-4">
-        <label for="nicknameInput" class="block text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1.5">
+      <div class="mb-3 sm:mb-4">
+        <label for="nicknameInput" class="block text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1">
           SEU APELIDO NA ARENA
         </label>
         <input
@@ -195,49 +202,49 @@
           type="text"
           maxlength="16"
           placeholder="Ex: CobraRei, Relâmpago..."
-          class="w-full px-3.5 py-3 rounded-xl bg-[#101829] border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 transition"
+          class="w-full px-3.5 py-2.5 sm:py-3 rounded-xl bg-[#101829] border border-slate-700/80 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 transition"
         />
       </div>
 
       <!-- Seletor de Cores -->
-      <div class="mb-3.5">
-        <span class="block text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1.5">
+      <div class="mb-3 sm:mb-3.5">
+        <span class="block text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase mb-1">
           ESCOLHA A COR DA SUA COBRINHA
         </span>
-        <div id="colorPicker" class="flex flex-wrap justify-center items-center gap-2.5 p-3 rounded-2xl bg-[#0e1525]/90 border border-slate-800/90">
-          <button type="button" data-color="#10b981" class="color-swatch w-11 h-11 rounded-full bg-[#10b981] ring-[3px] ring-white shadow-[0_0_14px_rgba(255,255,255,0.55)] transition transform scale-105"></button>
-          <button type="button" data-color="#3b82f6" class="color-swatch w-10 h-10 rounded-full bg-[#3b82f6] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#ef4444" class="color-swatch w-10 h-10 rounded-full bg-[#ef4444] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#a855f7" class="color-swatch w-10 h-10 rounded-full bg-[#a855f7] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#f59e0b" class="color-swatch w-10 h-10 rounded-full bg-[#f59e0b] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#06b6d4" class="color-swatch w-10 h-10 rounded-full bg-[#06b6d4] opacity-90 hover:opacity-100 transition"></button>
-          <button type="button" data-color="#ec4899" class="color-swatch w-10 h-10 rounded-full bg-[#ec4899] opacity-90 hover:opacity-100 transition"></button>
+        <div id="colorPicker" class="flex flex-wrap justify-center items-center gap-2 sm:gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#0e1525]/90 border border-slate-800/90">
+          <button type="button" data-color="#10b981" class="color-swatch w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#10b981] ring-[3px] ring-white shadow-[0_0_14px_rgba(255,255,255,0.55)] transition transform scale-105"></button>
+          <button type="button" data-color="#3b82f6" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#3b82f6] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#ef4444" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#ef4444] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#a855f7" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#a855f7] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#f59e0b" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#f59e0b] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#06b6d4" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#06b6d4] opacity-90 hover:opacity-100 transition"></button>
+          <button type="button" data-color="#ec4899" class="color-swatch w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#ec4899] opacity-90 hover:opacity-100 transition"></button>
         </div>
       </div>
 
       <!-- Estampas / Skins -->
-      <div id="skinPicker" class="grid grid-cols-2 gap-2.5 mb-4">
-        <button type="button" data-skin="solid" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#13292a] border border-emerald-400/70 text-white transition">
+      <div id="skinPicker" class="grid grid-cols-2 gap-2 sm:gap-2.5 mb-3 sm:mb-4">
+        <button type="button" data-skin="solid" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#13292a] border border-emerald-400/70 text-white transition">
           Clássico Sólido
         </button>
-        <button type="button" data-skin="striped" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
+        <button type="button" data-skin="striped" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
           Listrado
         </button>
-        <button type="button" data-skin="neon" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
+        <button type="button" data-skin="neon" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
           Neon Pulse
         </button>
-        <button type="button" data-skin="rainbow" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
+        <button type="button" data-skin="rainbow" class="skin-btn py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
           Arco-Íris
         </button>
-        <button type="button" data-skin="brasil" class="skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
+        <button type="button" data-skin="brasil" class="skin-btn col-span-2 py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition">
           Brasil
         </button>
       </div>
 
       <!-- Modo de Sala -->
-      <div class="p-3.5 rounded-2xl bg-[#0d1424] border border-slate-800/90 mb-4">
-        <div class="flex items-center justify-between gap-1.5 mb-3">
-          <span class="text-[11px] font-extrabold tracking-wider text-slate-200 uppercase">MODO DE SALA</span>
+      <div class="p-3 sm:p-3.5 rounded-2xl bg-[#0d1424] border border-slate-800/90 mb-3 sm:mb-4">
+        <div class="flex items-center justify-between gap-1.5 mb-2.5">
+          <span class="text-[10px] sm:text-[11px] font-extrabold tracking-wider text-slate-200 uppercase">MODO DE SALA</span>
           <div class="flex items-center gap-1.5">
             <span id="lobbyRoomCount" class="px-2 py-0.5 rounded-full bg-[#13253a] border border-sky-500/30 text-[10px] font-bold text-sky-300">
               👥 1/10 na sala
@@ -248,35 +255,38 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2.5">
-          <button id="publicRoomBtn" type="button" class="py-2.5 px-3 rounded-xl text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20">
+        <div class="grid grid-cols-2 gap-2">
+          <button id="publicRoomBtn" type="button" class="py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20">
             Arena Pública
           </button>
-          <button id="privateRoomBtn" type="button" class="py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition">
+          <button id="privateRoomBtn" type="button" class="py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition">
             Sala Privada 🔒
           </button>
         </div>
 
         <!-- Painel de Sala Privada -->
-        <div id="privateRoomPanel" class="hidden mt-3 pt-3 border-t border-slate-800 space-y-2">
-          <div class="flex gap-2">
-            <input id="roomCodeInput" type="text" maxlength="8" placeholder="CÓDIGO DA SALA" class="flex-1 px-3 py-2 rounded-lg bg-[#090e1a] border border-slate-700 text-xs font-bold uppercase text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
-            <button id="createRoomBtn" type="button" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-300 border border-emerald-500/30">
+        <div id="privateRoomPanel" class="hidden mt-2.5 pt-2.5 border-t border-slate-800 space-y-2">
+          <div class="flex gap-1.5">
+            <input id="roomCodeInput" type="text" maxlength="8" placeholder="CÓDIGO" class="min-w-0 flex-1 px-2.5 py-2 rounded-lg bg-[#090e1a] border border-slate-700 text-xs font-bold uppercase text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
+            <button id="createRoomBtn" type="button" class="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-300 border border-emerald-500/30 shrink-0">
               Gerar
+            </button>
+            <button id="copyRoomLinkBtn" type="button" class="px-2.5 py-2 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-xs font-bold text-emerald-300 border border-emerald-500/40 shrink-0">
+              Copiar Link
             </button>
           </div>
         </div>
       </div>
 
       <!-- Status de Conexão -->
-      <div id="connectionStatus" class="flex items-center justify-center gap-1.5 text-[13px] mb-4">
+      <div id="connectionStatus" class="flex items-center justify-center gap-1.5 text-xs sm:text-[13px] mb-3 sm:mb-4">
         <span id="connDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse"></span>
         <span id="connTitle" class="font-bold text-amber-400">Conectando...</span>
         <span id="connSub" class="text-slate-300">Aguardando servidor.</span>
       </div>
 
       <!-- Botão Entrar -->
-      <button id="startGameBtn" type="button" class="w-full py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-base tracking-wide uppercase shadow-lg shadow-emerald-500/25 transition">
+      <button id="startGameBtn" type="button" class="w-full py-3 sm:py-3.5 rounded-2xl bg-[#10b981] hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-sm sm:text-base tracking-wide uppercase shadow-lg shadow-emerald-500/25 transition">
         ENTRAR NA SALA
       </button>
 
@@ -292,10 +302,8 @@
       collection,
       doc,
       setDoc,
-      getDoc,
       deleteDoc,
-      onSnapshot,
-      serverTimestamp
+      onSnapshot
     } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
     // Credenciais do projeto Firebase: Servidor de Cobrinhas
@@ -356,8 +364,6 @@
     let remotePlayers = new Map();
     let bots = [];
     let orbs = [];
-    let plasmaOrbs = [];
-    let particles = [];
     let portalCooldown = 0;
 
     let isBoosting = false;
@@ -417,21 +423,24 @@
       btn.addEventListener('click', () => {
         selectedColor = btn.dataset.color;
         document.querySelectorAll('.color-swatch').forEach(b => {
-          b.classList.remove('w-11', 'h-11', 'ring-[3px]', 'ring-white', 'shadow-[0_0_14px_rgba(255,255,255,0.55)]', 'scale-105');
-          b.classList.add('w-10', 'h-10', 'opacity-90');
+          b.classList.remove('w-9', 'h-9', 'sm:w-11', 'sm:h-11', 'ring-[3px]', 'ring-white', 'shadow-[0_0_14px_rgba(255,255,255,0.55)]', 'scale-105');
+          b.classList.add('w-8', 'h-8', 'sm:w-10', 'sm:h-10', 'opacity-90');
         });
-        btn.classList.remove('w-10', 'h-10', 'opacity-90');
-        btn.classList.add('w-11', 'h-11', 'ring-[3px]', 'ring-white', 'shadow-[0_0_14px_rgba(255,255,255,0.55)]', 'scale-105');
+        btn.classList.remove('w-8', 'h-8', 'sm:w-10', 'sm:h-10', 'opacity-90');
+        btn.classList.add('w-9', 'h-9', 'sm:w-11', 'sm:h-11', 'ring-[3px]', 'ring-white', 'shadow-[0_0_14px_rgba(255,255,255,0.55)]', 'scale-105');
       });
     });
 
     document.querySelectorAll('.skin-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         selectedSkin = btn.dataset.skin;
+        const isBrasil = btn.dataset.skin === 'brasil';
         document.querySelectorAll('.skin-btn').forEach(b => {
-          b.className = 'skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition';
+          const spanClass = b.dataset.skin === 'brasil' ? 'col-span-2 ' : '';
+          b.className = `skin-btn ${spanClass}py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#111827] border border-slate-700/80 text-slate-200 hover:border-slate-500 transition`;
         });
-        btn.className = 'skin-btn py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#13292a] border border-emerald-400/70 text-white transition';
+        const activeSpan = isBrasil ? 'col-span-2 ' : '';
+        btn.className = `skin-btn ${activeSpan}py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#13292a] border border-emerald-400/70 text-white transition`;
       });
     });
 
@@ -440,24 +449,29 @@
     const privateRoomPanel = document.getElementById('privateRoomPanel');
     const roomCodeInput = document.getElementById('roomCodeInput');
     const lobbyRoomBadge = document.getElementById('lobbyRoomBadge');
+    const lobbyOverlay = document.getElementById('lobbyOverlay');
+    const startGameBtn = document.getElementById('startGameBtn');
 
     function updateRoomSelection(mode) {
       roomMode = mode;
       if (mode === 'public') {
         currentRoomId = 'public_arena_1';
-        publicRoomBtn.className = 'py-2.5 px-3 rounded-xl text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20';
-        privateRoomBtn.className = 'py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition';
+        publicRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20';
+        privateRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition';
         privateRoomPanel.classList.add('hidden');
         lobbyRoomBadge.textContent = '🌐 Arena Pública';
       } else {
-        privateRoomBtn.className = 'py-2.5 px-3 rounded-xl text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20';
-        publicRoomBtn.className = 'py-2.5 px-3 rounded-xl text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition';
+        privateRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-extrabold bg-[#10b981] hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20';
+        publicRoomBtn.className = 'py-2 sm:py-2.5 px-2.5 rounded-xl text-xs sm:text-[13px] font-bold bg-[#182132] hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition';
         privateRoomPanel.classList.remove('hidden');
         if (!roomCodeInput.value.trim()) {
           roomCodeInput.value = 'SALA' + Math.floor(100 + Math.random() * 900);
         }
         currentRoomId = 'private_' + roomCodeInput.value.trim().toUpperCase();
         lobbyRoomBadge.textContent = '🔒 ' + roomCodeInput.value.trim().toUpperCase();
+        setTimeout(() => {
+          startGameBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 60);
       }
       subscribeToRoom(currentRoomId);
     }
@@ -468,6 +482,17 @@
       roomCodeInput.value = 'VIP' + Math.floor(100 + Math.random() * 900);
       updateRoomSelection('private');
     });
+    document.getElementById('copyRoomLinkBtn').addEventListener('click', async (e) => {
+      const code = roomCodeInput.value.trim().toUpperCase();
+      if (!code) return;
+      const url = `${window.location.origin}${window.location.pathname}?sala=${encodeURIComponent(code)}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        const orig = e.target.textContent;
+        e.target.textContent = 'Copiado!';
+        setTimeout(() => { e.target.textContent = orig; }, 1600);
+      } catch (_) {}
+    });
     roomCodeInput.addEventListener('input', () => {
       if (roomMode === 'private' && roomCodeInput.value.trim()) {
         currentRoomId = 'private_' + roomCodeInput.value.trim().toUpperCase();
@@ -475,6 +500,13 @@
         subscribeToRoom(currentRoomId);
       }
     });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedRoomCode = urlParams.get('sala');
+    if (sharedRoomCode) {
+      roomCodeInput.value = sharedRoomCode.toUpperCase().slice(0, 8);
+      updateRoomSelection('private');
+    }
 
     // ==================== GERADOR DE ORBES E POWER-UPS ====================
     function createRandomOrb(id, forceType = null) {
@@ -695,6 +727,14 @@
 
     // ==================== INICIAR / ENTRAR NA PARTIDA ====================
     function startMatch() {
+      if (roomMode === 'private') {
+        const cleanCode = roomCodeInput.value.trim().toUpperCase();
+        if (cleanCode) {
+          currentRoomId = 'private_' + cleanCode;
+          subscribeToRoom(currentRoomId);
+        }
+      }
+
       const rawName = document.getElementById('nicknameInput').value.trim();
       const nickname = rawName || ('Cobra' + Math.floor(10 + Math.random() * 89));
 
@@ -709,13 +749,11 @@
       turboEnergy = 100;
       turboOverheated = false;
       isBoosting = false;
-      plasmaOrbs = [];
-      particles = [];
 
       if (orbs.length === 0) orbs = generateInitialOrbs(230);
       syncBotsPopulation();
 
-      document.getElementById('lobbyOverlay').classList.add('hidden');
+      lobbyOverlay.classList.add('hidden');
       document.getElementById('gameOverOverlay').classList.add('hidden');
       document.getElementById('hudOverlay').classList.remove('hidden');
       document.getElementById('hudRoomBadge').textContent = roomMode === 'public'
@@ -727,7 +765,7 @@
       syncPlayerToCloud(true);
     }
 
-    document.getElementById('startGameBtn').addEventListener('click', startMatch);
+    startGameBtn.addEventListener('click', startMatch);
     document.getElementById('respawnBtn').addEventListener('click', startMatch);
 
     document.getElementById('leaveRoomBtn').addEventListener('click', async () => {
@@ -736,7 +774,7 @@
       await removePlayerFromCloud();
       document.getElementById('hudOverlay').classList.add('hidden');
       document.getElementById('gameOverOverlay').classList.add('hidden');
-      document.getElementById('lobbyOverlay').classList.remove('hidden');
+      lobbyOverlay.classList.remove('hidden');
     });
 
     document.getElementById('toggleGfxBtn').addEventListener('click', (e) => {
